@@ -38,7 +38,7 @@ def show_email_options(st):
     #print("Callback EmailNotify",     st.session_state.EmailNotify )
     #print("Callback Notify",     st.session_state.Notify )
 
-def Setup_form(st, project, email,select,command,Queue,mails_on, jobname, workdir):
+def Setup_form(st, project, email,select,command,Queue,mails_on, jobname, workdir, modules):
     clear_on_submit = False
 
     Nodes = st.number_input("Number of nodes",value=1)
@@ -84,7 +84,7 @@ def Setup_tabs(st):
     simple_pbs_tab, pbs_tab, status_tab = st.tabs(["Simple PBS job", "PBS job", "Status"])
 
 
-def print_script(st, programme, email, select, command, queue, mails_on, jobname, Notify):
+def print_script(st, programme, email, select, command, queue, mails_on, jobname, Notify, modules):
             st.text("#PBS -P " + programme)
             if email and Notify:
                 st.text("#PBS -M " + email)
@@ -92,6 +92,7 @@ def print_script(st, programme, email, select, command, queue, mails_on, jobname
             st.text("#PBS " + select)
             st.text("PBS -q " + queue)
             st.text("PBS -N " + jobname)
+            st.text(modules)
             st.text(command)
 
 

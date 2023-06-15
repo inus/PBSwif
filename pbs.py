@@ -23,7 +23,7 @@ def show_pbs(st, pbs_tab):
         Interactive  = st.checkbox("Run interactive commands on node", key="Interactive")
         Vars  = st.checkbox("Preserve current shell variables", key="Vars")
     
-        project = st.text_input("CHPC Research Programme code", value='RP-CODE')
+        programme = st.text_input("CHPC Research Programme code", value='RP-CODE')
     
         Place  = st.checkbox("Select job placement")
         PlaceSelect = st.selectbox("Placement", ["free", "excl"])
@@ -31,6 +31,8 @@ def show_pbs(st, pbs_tab):
         mails_on  = st.multiselect("Notify emails on begin/end/abort ",  ['b', 'e', 'a'], default = 'e', label_visibility = "hidden")
     
         email = st.text_input("Email address", value='your@email.addr', label_visibility = "hidden")
+
+        modules = st.text_area("Modules and other initialization code", value="# module load chpc/BIOMODULES python")
     
         command = st.text_input("Command to run", value="command -switches parameters etc")
     
@@ -55,7 +57,7 @@ def show_pbs(st, pbs_tab):
         if Place and PlaceSelect:
             select = select + " -l place\:{}".format(PlaceSelect)
     
-        configuration = st.form_submit_button('Go!', use_container_width=True, type="primary")
+        configuration = st.form_submit_button('Write PBS script', use_container_width=True, type="primary")
     
     if configuration:
             st.write("#PBS -P " + programme)
@@ -70,5 +72,6 @@ def show_pbs(st, pbs_tab):
             if Interactive:
                 st.write("PBS -I")
             else:
+                st.write(modules)
                 st.write(command)
     

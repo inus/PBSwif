@@ -1,0 +1,17 @@
+To do:
+
+
+Submit job via drmaa call 
+
+Grab job status and simplify info
+
+Get PBS job status for user, incl valid queues available, efficiency
+
+Stats page - User jobs, disk space, Allocation 
+
+Live queue stats for serial, normal, bigmem etc 
+
+Search/show modules
+
+Download .PBS file 
+

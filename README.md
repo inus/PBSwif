@@ -10,8 +10,15 @@ Streamlit app to interact with CHPC Lengau Cluster:
 To install:
 
 Check out git code directory
+
 Create a python 3.11 virtual env, and activate
+
+Install streamlit:
+
 pip install -r requirements.txt
+
+
+Run the app
 
 streamlit run app.py
 
@@ -26,4 +33,6 @@ The Qsub tab will appear when running on
 a submit host
 
 Working: DRMAA job submissions, status
+
+To do: Add graphical queue status
 

@@ -12,7 +12,8 @@ To install:
 Check out git code directory
 Create a python 3.11 virtual env, and activate
 pip install -r requirements.txt
-streamlit run test.py
+
+streamlit run app.py
 
 Open browser on localhost:8501
 
@@ -21,4 +22,8 @@ open a ssh tunnel, eg:
 
 ssh -N -L 10000:localhost:8501 scp.chpc.ac.za
 
+The Qsub tab will appear when running on 
+a submit host
+
+Working: DRMAA job submissions, status
 

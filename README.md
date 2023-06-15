@@ -10,8 +10,15 @@ Streamlit app to interact with CHPC Lengau Cluster:
 To install:
 
 Check out git code directory
+
 Create a python 3.11 virtual env, and activate
+
+Install streamlit:
+
 pip install -r requirements.txt
+
+Run the app
+
 streamlit run test.py
 
 Open browser on localhost:8501

@@ -1,38 +1,45 @@
-Streamlit app to interact with CHPC Lengau Cluster:
+# Streamlit app to interact with CHPC Lengau Cluster:
 
-1. To aid in generating PBS job scripts
+- To aid in generating PBS job scripts using CHPC queue parameters
 
-2. To submit jobs from the web interface
+- To submit job scripts to the cluster from a web interface
 
-3. To track queue and job status on the cluster
+- To track and display queue and job status on the cluster
 
-
-To install:
-
-Check out git code directory
-
-Create a python 3.11 virtual env, and activate
-
-Install streamlit:
-
-pip install -r requirements.txt
+- Extend capabilities to generate graphs from results
 
 
-Run the app
+## To install:
 
-streamlit run app.py
+- Check out git code directory `git clone https://github.com/inus/PBSwif.git`
 
-Open browser on localhost:8501
+- Create a python (tested on 3.9 and 3.11) virtual env, and activate
 
-Alt. when running on a remote/login node:
-open a ssh tunnel, eg:
+  `virtualenv Venv3`
+  
+  `. Venv3/bin/activate`
 
-ssh -N -L 10000:localhost:8501 scp.chpc.ac.za
+- Install streamlit and optionally drmaa, to enable job submission.
 
-The Qsub tab will appear when running on 
-a submit host
+  `pip install streamlit`
 
-Working: DRMAA job submissions, status
 
-To do: Add graphical queue status
+  Note that the DRMAA v1 library has to be compiled or installed on the
+  submit host.
+  
+  The library path can be provided via shell environment variable, `DRMAA_LIBRARY_PATH` 
+  
+  `pip install drmaa` 
+  
+
+## Run the app
+
+- `streamlit run app.py`
+
+- Open browser on localhost:8501
+
+- Alternatively, when running on a remote/login node:
+  
+  open a ssh tunnel, eg:
+   `ssh -N -L 10000:localhost:8501 scp.chpc.ac.za`
 

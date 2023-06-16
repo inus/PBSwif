@@ -1,6 +1,7 @@
 #common.py
 import socket
-    
+
+#Lengau queue specs from https://wiki.chpc.ac.za    
 table_md = """
 | Queue Name         | Min nodes/job| Min cores/job |Max nodes/job  | Max cores/job  | Max jobs in Q   | Max jobs running   |  Max time (h) |   Notes  | Access  |
 | ---                | ---          | ---           |---            | ---            | ---             | ---                | ---           |  ---     |   ---   |
@@ -27,82 +28,91 @@ def show_info(st):
 
 def show_email_options(st):
     print("Callback ")
-    #import pdb; pdb.set_trace()
-#    if  not 'Notify' in st.session_state:
-#        st.session_state.Notify = True
-    #else:
-    #    st.session_state.Notify = not st.session_state.Notify
+    if  'Notify' in st.session_state:
+        st.session_state.Notify = not st.session_state.Notify
 
-    #st.session_state.Notify = not Val
-    #print("Callback EmailNotify",     st.session_state.EmailNotify )
-    #print("Callback Notify",     st.session_state.Notify )
-
-def Setup_form(st, programme, email,select,command,Queue,mails_on, jobname, workdir, modules):
-    clear_on_submit = False
-
-    '''
-    Nodes = st.number_input("Number of nodes",value=1)
-    Cores = st.selectbox("Cores", [1,2,3,4,5,6,7,8,9,10,11,12,
-                                   13,14,15,16,17,18,19,20,21,22,23,24,25,28,56], index=23)
-    Memory = st.selectbox("Memory in GB",  [60,120,500,1000], index=1)
-    Queue = st.selectbox("Queue",  ['serial','seriallong', 'smp','normal', 'large','xlarge','bigmem',
-                                    'vis','test','gpu_1','gpu_2','gpu_3','gpu_4','gpu_long','express'], 
-                                    index=3)
-    '''
-
-    jobname  = st.text_input("Job name or label", value='job name')
-    programme = st.text_input("Your CHPC Research Programme code", value='CHPC-RPcode')
-
-#    Notify  = st.checkbox("Receive job emails", on_change=show_email_options(st), value=True, key='Notify2')
-    if  not 'Notify' in st.session_state:
-        st.session_state.Notify = True
-    #else:
-    #    st.session_state.Notify = not st.session_state.Notify
-
-
-    email = st.text_input("Email address", value='your@email.addr')
-
-    mails_on  = st.multiselect("Notify emails on begin/end/abort ",  ['b', 'e', 'a'], 
-                               default = 'e', disabled= not(st.session_state.Notify))
-
-    errorfile = st.text_input("Error file name - leave empty to use job-id")
-    outfile = st.text_input("Output file name - leave empty to use job-id"  )
-    workdir = st.text_input("Working directory")
-    modules = st.text_area("Modules and other initialization code", value="# module load chpc/BIOMODULES python")
-    command = st.text_input("Command to run", value="command -switches parameters etc")
-
-    '''
-    if Nodes == 1:
-        Queue = 'serial'
-        Cores = 23
-    elif Nodes > 20:
-        Queue = 'large'
-    else:
-        Queue = 'normal'
-    if Memory > 120 or Cores > 24 :
-        Queue = 'bigmem'
-
-    select = "#PBS -l select={}\:ncpus={}\:mem={}GB".format(Nodes,Cores,Memory)
-    '''
-
-
-def Setup_tabs(st):
-  host = socket.gethostname()
-  if host in ['login1', 'login2', 'globus.chpc.ac.za']:
-    simple_pbs_tab, pbs_tab, qsub_tab, status_tab = st.tabs(["Simple PBS job", "PBS job", "Qsub", "Status"])
-  else:
-    simple_pbs_tab, pbs_tab, status_tab = st.tabs(["Simple PBS job", "PBS job", "Status"])
-
-
+'''
 def print_script(st, programme, email, select, command, queue, mails_on, jobname, Notify, modules):
             st.text("#PBS -P " + programme)
             if email and Notify:
                 st.text("#PBS -M " + email)
                 st.text("#PBS -m " + ''.join(mails_on))
             st.text("#PBS " + select)
-            st.text("PBS -q " + queue)
-            st.text("PBS -N " + jobname)
+            st.text("#PBS -q " + queue)
+            st.text("#PBS -N " + jobname)
             st.text(modules)
             st.text(command)
+'''
+
+def check_select(st): 
+
+    Nodes, Cores, Memory, Queue, MPIprocs, GPUs, walltime = st.session_state.Nodes, \
+        st.session_state.Cores, st.session_state.Memory, st.session_state.Queue, \
+        st.session_state.MPIprocs, st.session_state.GPUs, st.session_state.walltime
+
+    if Nodes == 1:
+        if GPUs > 0:
+            Queue = 'gpu_' + str(GPUs)
+        else:
+            if Memory > 120:
+                Queue = 'bigmem'
+                if walltime > 48: walltime = 48
+            else:
+                if Cores == 24:
+                    Queue = 'smp'
+                    if walltime > 96: walltime = 96
+                else:
+                    if walltime > 96: 
+                        Queue = 'seriallong'
+                        if walltime > 144: walltime = 144
+                    else:
+                        Queue = 'serial'
+                        if walltime > 48: walltime = 48
+
+
+    elif Nodes >= 2:
+        if Cores < 24: 
+            Cores = 24
+        Queue = 'normal'
+        if walltime > 48: walltime = 48
+
+    elif Nodes > 20:     # TODO: Check queue limits with Qstat            
+        Queue = 'large'
+        if walltime > 96: walltime = 96
+
+    else:
+        Queue = 'normal'
+        if walltime > 48: walltime = 48
+
+    if GPUs > 0:
+        if GPUs == 1 : 
+            if Cores > 10: Cores = 10
+        if GPUs == 2 : 
+            if Cores > 20: Cores = 20
+        if GPUs == 3 : 
+            if Cores > 36: Cores = 36
+        if GPUs == 4 : 
+            if Cores > 40: Cores = 40
+        if MPIprocs > Cores:
+            MPIprocs = Cores
+        if walltime > 12:
+            walltime = 12
+
+        select = "-l select={}:ncpus={}:ngpus={}:mpiprocs={}:mem={}GB".format(Nodes,Cores,GPUs,MPIprocs,Memory)
+
+    else:  #no GPU      
+        if MPIprocs != 0:
+            if MPIprocs > Cores: MPIprocs = Cores            
+            select = "-l select={}:ncpus={}:mpiprocs={}:mem={}GB".format(Nodes,Cores,MPIprocs,Memory)
+        else:
+            select = "-l select={}:ncpus={}:mem={}GB".format(Nodes,Cores,Memory)
+    
+    if st.session_state.Place and st.session_state.PlaceSelect:
+        select = select + " -l place={}".format(st.session_state.PlaceSelect)
+
+    if st.session_state.walltime:
+        select = select + " -l walltime=" + str(st.session_state.walltime) + ':00'
+
+    return select, Nodes, Cores, Memory, Queue, MPIprocs, GPUs
 
 

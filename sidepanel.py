@@ -19,7 +19,7 @@ def show_sidepanel(st):
                                         13,14,15,16,17,18,19,20,21,22,23,24,25,28,56], index=22, key='MPIprocs')
         
             Memory = st.selectbox("Memory in GB",  [60,120,500,1000], index=1, key='Memory')
-            GPUs = st.selectbox("GPUs",  [1,2,3,4], key='GPUs')
+            GPUs = st.selectbox("GPUs",  [0,1,2,3,4], key='GPUs')
 
 
         with col2:     
@@ -35,6 +35,8 @@ def show_sidepanel(st):
         Queue = st.selectbox("Queue",  ['serial','seriallong', 'smp','normal', 'large','xlarge','bigmem',
                                         'vis','test','gpu_1','gpu_2','gpu_3','gpu_4','gpu_long','express'], index=0,
                                         key='Queue')
+        
+
 
 
 

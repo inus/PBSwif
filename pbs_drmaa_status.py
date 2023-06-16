@@ -1,11 +1,16 @@
+try:
+    import drmaa
+except:
+    print("DRMAA not available")
+    drmaa_avail = False
 
-import drmaa
 import time
 import os,sys
 
 
 def submit_job(command, jobname, select, email):
     
+  if not drmaa_avail:
     pbs_sub = drmaa.Session()
     pbs_sub.initialize()
     jt = pbs_sub.createJobTemplate()
@@ -20,6 +25,8 @@ def submit_job(command, jobname, select, email):
     return jobid
     pbs_sub.deleteJobTemplate(jt)
     pbs_sub.exit()
+  else:
+    print("Sorry, DRMAA not available")
 
 
 

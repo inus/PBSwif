@@ -1,77 +1,134 @@
+#pbs.py
+import datetime
+from common import print_script
 
-from common import show_email_options, configuration
 
 def show_pbs(st, pbs_tab):
 
-    with pbs_tab:
-      
-      Notify  = st.checkbox("Receive job emails", key='notify2', on_change=show_email_options(st))
+    def check_select(): 
 
-      with st.form(key='pbs_form'):
-        clear_on_submit = False
-        Nodes = st.number_input("Number of nodes",value=1)
-        Cores = st.selectbox("Cores", [1,2,3,4,5,6,7,8,9,10,11,12,
-                                       13,14,15,16,17,18,19,20,21,22,23,24,25,28,56], index=23)
-        MPIprocs = st.selectbox("MPI Cores", [0,1,2,3,4,5,6,7,8,9,10,11,12,
-                                       13,14,15,16,17,18,19,20,21,22,23,24,25,28,56], index=24)
-    
-        Memory = st.selectbox("Memory in GB",  [60,120,500,1000], index=1)
-        Queue = st.selectbox("Queue",  ['serial','seriallong', 'smp','normal', 'large','xlarge','bigmem',
-    'vis','test','gpu_1','gpu_2','gpu_3','gpu_4','gpu_long','express'], index=3)
-    
-    #    CPUtype = st.selectbox("CPU type", ['haswell','haswell_fat',])
-        Interactive  = st.checkbox("Run interactive commands on node", key="Interactive")
-        Vars  = st.checkbox("Preserve current shell variables", key="Vars")
-    
-        programme = st.text_input("CHPC Research Programme code", value='RP-CODE')
-    
-        Place  = st.checkbox("Select job placement")
-        PlaceSelect = st.selectbox("Placement", ["free", "excl"])
-    
-        mails_on  = st.multiselect("Notify emails on begin/end/abort ",  ['b', 'e', 'a'], default = 'e', label_visibility = "hidden")
-    
-        email = st.text_input("Email address", value='your@email.addr', label_visibility = "hidden")
+        Nodes, Cores, Memory, Queue, MPIprocs, GPUs = st.session_state.Nodes, st.session_state.Cores, \
+                    st.session_state.Memory, st.session_state.Queue, st.session_state.MPIprocs, st.session_state.GPUs
 
-        modules = st.text_area("Modules and other initialization code", value="# module load chpc/BIOMODULES python")
-    
-        command = st.text_input("Command to run", value="command -switches parameters etc")
-    
-        if Nodes == 1:
+        if Nodes == 1 and Memory < 120:
             Queue = 'serial'
-            Cores = 23
+            if Cores >= 23:
+                Cores = st.session_state.Cores
             if MPIprocs:
                 MPIprocs = Cores
+        elif Nodes > 1:
+            Cores = 24
+            if MPIprocs:
+                MPIprocs = Cores
+            Queue = 'normal'
         elif Nodes > 20:
             Queue = 'large'
         else:
             Queue = 'normal'
+
         if Memory > 120 or Cores > 24 :
             Queue = 'bigmem'
     
+        if MPIprocs > Cores:
+            MPIprocs = Cores
     
         if MPIprocs != 0:
-            select = "#PBS -l select={}\:ncpus={}\:mpiprocs={}\:mem={}GB".format(Nodes,Cores,MPIprocs,Memory)
+            select = "#PBS -l select={}:ncpus={}:mpiprocs={}:mem={}GB".format(Nodes,Cores,MPIprocs,Memory)
         else:
-            select = "#PBS -l select={}\:ncpus={}\:mem={}GB".format(Nodes,Cores,Memory)
-    
-        if Place and PlaceSelect:
-            select = select + " -l place\:{}".format(PlaceSelect)
-    
-        configuration = st.form_submit_button('Write PBS script', use_container_width=True, type="primary")
-    
-    if configuration:
-            st.write("#PBS -P " + programme)
-            if email and Notify:
-                st.write("#PBS -M " + email)
-                st.write("#PBS -m" + ''.join(mails_on))
-            st.write(select)
-            st.write("PBS -q " + Queue)
-            if Vars:
-                st.write("PBS -V")
-    
-            if Interactive:
-                st.write("PBS -I")
-            else:
-                st.write(modules)
-                st.write(command)
-    
+            select = "#PBS -l select={}:ncpus={}:mem={}GB".format(Nodes,Cores,Memory)
+
+        if GPUs != 0:
+            select = "#PBS -l select={}:ncpus={}:ngpus={}:mpiprocs={}:mem={}GB".format(Nodes,Cores,GPUs,MPIprocs,Memory)
+            Queue = 'gpu_' + str(st.session_state.GPUs)
+        
+
+        if st.session_state.Place and st.session_state.PlaceSelect:
+            select = select + " -l place={}".format(st.session_state.PlaceSelect)
+
+        if st.session_state.walltime:
+            select = select + " -l walltime=" + str(st.session_state.walltime) + ':00'
+        
+        return select
+
+
+    with pbs_tab:            
+
+        col1, col2 = st.columns([1,2])
+      
+        with st.form(key='pbs_form'):
+                
+                clear_on_submit = False
+                with col1:
+            
+                    jobname = st.text_input("PBS job name", value='MyJobName', key="jobname")
+
+                    programme = st.text_input("CHPC Research Programme", placeholder='CHPC1234')
+                
+                    mails_on  = st.multiselect("Notify emails on begin/end/abort ",  ['b', 'e', 'a'], default = 'e')
+                
+                    email = st.text_input("Email address", value='your@email.addr')
+                
+                    walltime = st.number_input('Walltime h', value=48, key='walltime', )
+
+
+                with col2:
+                     
+                    modules = st.text_area("Modules and other initialization code", value="module load chpc/BIOMODULES python")
+                    command = st.text_input("Command to run", value="echo Hello from $(hostname) on $(date)")
+
+
+                if st.form_submit_button('Write PBS script to screen', use_container_width=True, type="primary"):
+                    select = check_select()
+                    st.text("#PBS -P " + programme)
+                    if email and st.session_state.Notify:
+                        st.text("#PBS -M " + email)
+                        st.text("#PBS -m " + ''.join(mails_on))
+                    st.text(select)
+                    st.text("#PBS -q " + st.session_state.Queue)
+                    if st.session_state.Vars:
+                        st.text("#PBS -V")
+                    if st.session_state.jobname:
+                        st.text("#PBS -N " + st.session_state.jobname )
+            
+                    if st.session_state.Interactive:
+                        st.text("#PBS -I")
+                        st.info('You can start an interactive jobs as below')
+                        cmd = 'qsub '
+                        if st.session_state.Interactive: cmd = cmd + '-I '
+                        if st.session_state.Vars: cmd = cmd + '-V '
+                        if st.session_state.Xfwd: cmd = cmd + '-X '
+                        cmd = cmd + '-N ' + st.session_state.jobname 
+                        cmd = cmd + '-q ' + st.session_state.Queue 
+                        cmd = cmd + ' ' + select
+                        st.text(cmd)
+                    else:
+                        st.text(modules)
+                        st.text(command)
+            
+                txt = "#PBS -P " + programme + '\n'
+
+                if email and st.session_state.Notify:
+                        txt = txt + "#PBS -M " + email + '\n'
+                        txt = txt + "#PBS -m " + ''.join(mails_on) + '\n'
+                select = check_select()
+                txt = txt + select + '\n'
+                txt = txt + "#PBS -q " + st.session_state.Queue + '\n'
+                if st.session_state.Vars:
+                    txt = txt + "#PBS -V" + '\n'
+                if st.session_state.jobname:
+                    txt = txt + "#PBS -N " + st.session_state.jobname + '\n'
+        
+                if st.session_state.Interactive:
+                    txt = txt + "#PBS -I" + '\n'
+                    if st.session_state.Vars: txt = txt + '#PBS -V ' + '\n'
+                    if st.session_state.Xfwd: txt = txt + '#PBS -X ' + '\n'
+                    txt = txt + '#PBS -N ' + st.session_state.jobname + '\n'
+                    txt = txt + '#PBS -q ' + st.session_state.Queue + '\n'
+                    txt = '#PBS ' + select + '\n'
+                    #txt = txt + cmd
+                else:
+                    txt = txt + modules + '\n'
+                    txt = txt + command + '\n'
+
+        st.download_button('Download PBS script', file_name='pbs-helper.pbs', data = txt)
+

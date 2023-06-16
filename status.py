@@ -1,6 +1,6 @@
 import re
 from subprocess import run
-from common import configuration
+#from common import configuration
 from pbs_drmaa_status import check_job
 
 def show_status(st, status_tab):

@@ -6,32 +6,40 @@ except:
     DRMAA_avail = False
 
 import datetime
-from common import check_select
+from common import check_select, DEFAULT_WALLTIME 
 
 def show_pbs(st, pbs_tab):
 
+    def set_dl_filename():
+        #print("onclick!", 'PBShelper.pbs')
+        return st.session_state.dl_filename
+        
     with pbs_tab:            
 
-        col1, col2 = st.columns([1,2])
+        form_leftcol, form_rightcol = st.columns([1,2])
       
         with st.form(key='pbs_form'):
                                                 
                 clear_on_submit = False
-                with col1:
+                with form_leftcol:
             
                     jobname = st.text_input("PBS job name", value='MyJobName', key="jobname")
 
-                    programme = st.text_input("CHPC Research Programme", placeholder='CHPC1234', key='programme')
+                    programme = st.text_input("**:red[CHPC Research Programme Code *]**", placeholder='ABCD1234', key='programme')
                 
-                    mails_on  = st.multiselect("Notify emails on begin/end/abort ",  ['b', 'e', 'a'],
-                                                default = 'e', key='mails_on', disabled= not st.session_state.Notify )
+                    mails_on  = st.multiselect("Send emails on job begin/end/abort events",  ['b', 'e', 'a'],
+                                                default = 'e', key='mails_on', disabled = not st.session_state.Notify )
                 
                     email = st.text_input("Email address", placeholder='your@email.addr', key='email')
                 
-                    walltime = st.number_input('Walltime h', value=48, key='walltime' )
+                    timecol1, timecol2 = st.columns([1,1])
+                    with timecol1:
+                        walltime = st.number_input('Walltime h', value=DEFAULT_WALLTIME, key='walltime' )
+                    with timecol2:
+                        walltime_m = st.number_input('Walltime min', value=0, key='walltime_m' )
 
 
-                with col2:
+                with form_rightcol:
                     errorfile = st.text_input("Error file name - leave empty to use jobname.job-id", key='error')
                     outfile = st.text_input("Output file name - leave empty to use jobname.job-id", key='out'  )
                     workdir = st.text_input("Working directory", key='work')
@@ -43,7 +51,9 @@ def show_pbs(st, pbs_tab):
 
                 if st.form_submit_button('Preview PBS script', use_container_width=True, type="primary"):
                     if not st.session_state.programme:
-                         st.error("CHPC programme Code needed")
+                        st.error("The allocated CHPC Research Programme code, e.g. 'ABCD1234' is required to submit jobs")
+                    if not st.session_state.email:
+                        st.warning("No email address given, notification mail directive omitted")
                     select, Nodes, Cores, Memory, Queue, MPIprocs, GPUs = check_select(st)
                     st.text("#PBS -P " + programme)
                     if email and st.session_state.Notify:
@@ -93,7 +103,17 @@ def show_pbs(st, pbs_tab):
                     txt = txt + modules + '\n'
                     txt = txt + command + '\n'
 
-        st.download_button('Download PBS script', file_name='pbs-helper.pbs', data = txt)
+        dl_file_col_left, dl_file_col_right = st.columns([1,1])
+        with dl_file_col_left:
+            dl_filename = st.text_input("Script file name", key='dl_filename',
+                                         label_visibility='collapsed', 
+                                         value=st.session_state.jobname + '.pbs.txt')
+        with dl_file_col_right:
+            st.download_button('Download PBS script', data=txt, 
+                                file_name=st.session_state.dl_filename,
+                                on_click=set_dl_filename,
+                                use_container_width=True )
+
 
         if DRMAA_avail:
             submission  = st.form_submit_button('Submit PBS job script to Lengau Cluster', use_container_width=True)

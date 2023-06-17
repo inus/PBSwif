@@ -1,5 +1,6 @@
 #common.py
 import socket
+DEFAULT_WALLTIME=48
 
 #Lengau queue specs from https://wiki.chpc.ac.za    
 table_md = """
@@ -30,19 +31,6 @@ def show_email_options(st):
     print("Callback ")
     if  'Notify' in st.session_state:
         st.session_state.Notify = not st.session_state.Notify
-
-'''
-def print_script(st, programme, email, select, command, queue, mails_on, jobname, Notify, modules):
-            st.text("#PBS -P " + programme)
-            if email and Notify:
-                st.text("#PBS -M " + email)
-                st.text("#PBS -m " + ''.join(mails_on))
-            st.text("#PBS " + select)
-            st.text("#PBS -q " + queue)
-            st.text("#PBS -N " + jobname)
-            st.text(modules)
-            st.text(command)
-'''
 
 def check_select(st): 
 
@@ -110,8 +98,8 @@ def check_select(st):
     if st.session_state.Place and st.session_state.PlaceSelect:
         select = select + " -l place={}".format(st.session_state.PlaceSelect)
 
-    if st.session_state.walltime:
-        select = select + " -l walltime=" + str(st.session_state.walltime) + ':00'
+    if st.session_state.walltime != DEFAULT_WALLTIME:
+        select = select + " -l walltime=" + str(st.session_state.walltime) + ':' + str(st.session_state.walltime_m) 
 
     return select, Nodes, Cores, Memory, Queue, MPIprocs, GPUs
 

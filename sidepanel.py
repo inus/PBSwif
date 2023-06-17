@@ -1,5 +1,5 @@
 #sidepanel.py 
-#from common import show_email_options, configuration
+from common import DEFAULT_WALLTIME
 
 def show_sidepanel(st):
 
@@ -7,7 +7,8 @@ def show_sidepanel(st):
 
     with st.sidebar:
 
-        Notify  = st.checkbox("Send email", value=True, key="Notify") 
+        #Notify  = st.checkbox("Send email", value=True, key="Notify", ) 
+        st.session_state.Notify=True
 
         col1, col2 = st.columns([1, 2])
 
@@ -24,19 +25,25 @@ def show_sidepanel(st):
 
         with col2:     
 
-            Place  = st.checkbox("Select job placement", key='Place')
-            PlaceSelect = st.selectbox("Placement", ["free", "excl"], key='PlaceSelect')
+            #Place  = st.checkbox("Select job placement", key='Place', label_visibility='collapsed')
+            PlaceSelect = st.selectbox("Placement", ["none", "free", "excl"], key='PlaceSelect')
 
             Interactive  = st.checkbox("Interactive", key="Interactive")
             Vars  = st.checkbox("Keep env vars", key="Vars")
             Xfwd  = st.checkbox("Forward X", key="Xfwd")
             CPUtype = st.selectbox("CPU type", ['haswell','haswell_fat',], key='cputype')
 
+        
+        timecol1, timecol2 = st.columns([1,1])
+        with timecol1:
+            walltime = st.number_input('Walltime h', value=DEFAULT_WALLTIME, key='walltime' )
+        with timecol2:
+            walltime_m = st.number_input('Walltime min', value=0, key='walltime_m' )
+
         Queue = st.selectbox("Queue",  ['serial','seriallong', 'smp','normal', 'large','xlarge','bigmem',
                                         'vis','test','gpu_1','gpu_2','gpu_3','gpu_4','gpu_long','express'], index=0,
                                         key='Queue')
-        
-
+        st.divider()
 
 
 

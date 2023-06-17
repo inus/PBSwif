@@ -19,6 +19,8 @@ st.set_page_config(
 
 host = socket.gethostname()
 
+st.header('PBS web-interface')
+
 pbs_tab, status_tab = st.tabs(["PBS Script", "Status"])
 
 show_sidepanel(st)

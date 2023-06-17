@@ -95,7 +95,7 @@ def check_select(st):
         else:
             select = "-l select={}:ncpus={}:mem={}GB".format(Nodes,Cores,Memory)
     
-    if st.session_state.Place and st.session_state.PlaceSelect:
+    if st.session_state.PlaceSelect != "none":
         select = select + " -l place={}".format(st.session_state.PlaceSelect)
 
     if st.session_state.walltime != DEFAULT_WALLTIME:

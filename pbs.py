@@ -11,9 +11,9 @@ from common import check_select, DEFAULT_WALLTIME
 def show_pbs(st, pbs_tab):
 
     def set_dl_filename():
-        #print("onclick!", 'PBShelper.pbs')
         return st.session_state.dl_filename
         
+
     with pbs_tab:            
 
         form_leftcol, form_rightcol = st.columns([1,2])
@@ -21,32 +21,48 @@ def show_pbs(st, pbs_tab):
         with st.form(key='pbs_form'):
                                                 
                 clear_on_submit = False
+
                 with form_leftcol:
             
                     jobname = st.text_input("PBS job name", value='MyJobName', key="jobname")
 
-                    programme = st.text_input("**:red[CHPC Research Programme Code *]**", placeholder='ABCD1234', key='programme')
+                    programme = st.text_input("**:red[CHPC Research Programme Code :warning:]**", 
+                                              placeholder='ABCD1234', key='programme', 
+                                              help='Provide your allocated RP code')
                 
-                    mails_on  = st.multiselect("Send emails on job begin/end/abort events",  ['b', 'e', 'a'],
-                                                default = 'e', key='mails_on', disabled = not st.session_state.Notify )
+                    mails_on  = st.multiselect("Email on job events",
+                                                ['b', 'e', 'a'], default = 'e',
+                                                key='mails_on', disabled = not st.session_state.Notify,
+                                                help = "Send email on job events: **b**egin/**e**nd/**a**bort"  )
                 
-                    email = st.text_input("Email address", placeholder='your@email.addr', key='email')
+                    email = st.text_input("Email address", placeholder='your@email.addr',
+                                           key='email', help="Fill in to receive email")
+                    
+
+                    col_left, col_right = st.columns([1,1])
+
+                    with col_left:
+                        bash  = st.checkbox("Enable bash", key="bash", value=True,
+                                        help="Add bash to script to enable bash variables and constucts")
+                    with col_right:
+                        join  = st.checkbox("Join files", key="join", value=False,
+                                        help="Combine output and error into one file")
                 
-                    timecol1, timecol2 = st.columns([1,1])
-                    with timecol1:
-                        walltime = st.number_input('Walltime h', value=DEFAULT_WALLTIME, key='walltime' )
-                    with timecol2:
-                        walltime_m = st.number_input('Walltime min', value=0, key='walltime_m' )
 
 
                 with form_rightcol:
-                    errorfile = st.text_input("Error file name - leave empty to use jobname.job-id", key='error')
-                    outfile = st.text_input("Output file name - leave empty to use jobname.job-id", key='out'  )
-                    workdir = st.text_input("Working directory", key='work')
-                     
-                    modules = st.text_area("Modules and other initialization code", value="module load chpc/BIOMODULES python",
-                                           key='modules')
-                    command = st.text_input("Command to run", value="echo Hello from $(hostname) on $(date)", key='command')
+                    errorfile = st.text_input("Error file name", key='error',
+                                              help='Leave empty for generated jobname.job-id')
+                    outfile = st.text_input("Output file name", key='out',
+                                            help="Leave empty for generated jobname.job-id"  )
+                    workdir = st.text_input("Working directory", key='workdir', 
+                                            help="Fill in to change directory to this")                     
+                    modules = st.text_area("Modules and initialization code", 
+                                           value="module load chpc/BIOMODULES python",
+                                           key='modules', help="Any other initialization")
+                command = st.text_input("Commandline", 
+                                        value="echo Hello from $(hostname) on $(date)", 
+                                        key='command', help='Commands, switches and arguments')
 
 
                 if st.form_submit_button('Preview PBS script', use_container_width=True, type="primary"):
@@ -55,6 +71,8 @@ def show_pbs(st, pbs_tab):
                     if not st.session_state.email:
                         st.warning("No email address given, notification mail directive omitted")
                     select, Nodes, Cores, Memory, Queue, MPIprocs, GPUs = check_select(st)
+                    if st.session_state.bash:
+                        st.text("#!/bin/bash")
                     st.text("#PBS -P " + programme)
                     if email and st.session_state.Notify:
                         st.text("#PBS -M " + email)
@@ -76,16 +94,27 @@ def show_pbs(st, pbs_tab):
                         cmd = cmd + ' ' + select
                         st.text(cmd)
                     else:
+                        if st.session_state.join:
+                            st.text('#PBS -j oe')
+                        if st.session_state.workdir:
+                            st.text('cd ' + st.session_state.workdir)
                         st.text(modules)
                         st.text(command)
-            
-                txt = "#PBS -P " + programme + '\n'
 
-                if email and st.session_state.Notify:
+                if st.session_state.bash:
+                    txt = ("#!/bin/bash\n")
+                else:
+                    txt = ('## CHPC PBSwif generated script\n')
+
+                txt = txt + '## Script generated on ' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '\n'
+
+                txt = txt + "#PBS -P " + programme + '\n'
+
+                if email:
                         txt = txt + "#PBS -M " + email + '\n'
                         txt = txt + "#PBS -m " + ''.join(mails_on) + '\n'
                 select, Nodes, Cores, Memory, Queue, MPIprocs, GPUs = check_select(st)
-                txt = txt + select + '\n'
+                txt = txt + "#PBS " + select + '\n'
                 txt = txt + "#PBS -q " + Queue + '\n'
                 if st.session_state.Vars:
                     txt = txt + "#PBS -V" + '\n'
@@ -100,6 +129,11 @@ def show_pbs(st, pbs_tab):
                     txt = txt + '#PBS -q ' + st.session_state.Queue + '\n'
                     txt = '#PBS ' + select + '\n'
                 else:
+                    if st.session_state.workdir:
+                        txt = txt + 'cd ' + st.session_state.workdir + '\n'
+                    if st.session_state.join:
+                        txt = txt + '#PBS -j oe' + '\n'
+
                     txt = txt + modules + '\n'
                     txt = txt + command + '\n'
 

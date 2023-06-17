@@ -3,7 +3,6 @@
 try:
   import drmaa
 except:
-    print("DRMAA not found")
     DRMAA_avail = False
 
 import datetime

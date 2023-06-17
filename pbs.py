@@ -2,6 +2,7 @@
 
 try:
   import drmaa
+  DRMAA_avail = True
 except:
     DRMAA_avail = False
 
@@ -137,40 +138,34 @@ def show_pbs(st, pbs_tab):
                     txt = txt + modules + '\n'
                     txt = txt + command + '\n'
 
-        dl_file_col_left, dl_file_col_right = st.columns([1,1])
-        with dl_file_col_left:
-            dl_filename = st.text_input("Script file name", key='dl_filename',
+                    dl_filename = st.text_input("Script file name", key='dl_filename',
                                          label_visibility='collapsed', 
                                          value=st.session_state.jobname + '.pbs.txt')
-        with dl_file_col_right:
-            st.download_button('Download PBS script', data=txt, 
-                                file_name=st.session_state.dl_filename,
-                                on_click=set_dl_filename,
-                                use_container_width=True )
 
 
-        if DRMAA_avail:
-            submission  = st.form_submit_button('Submit PBS job script to Lengau Cluster', use_container_width=True)
-            if submission:
-                pbs = drmaa.Session()
-                try:
-                    pbs.initialize()
-                except:
-                    pass
+                if DRMAA_avail:
+                    submission  = st.form_submit_button('Submit PBS job script to Lengau Cluster', use_container_width=True)
+                    if submission:
+                        pbs = drmaa.Session()
+                        try:
+                            pbs.initialize()
+                        except:
+                            pass
 
-                jt = pbs.createJobTemplate()
-                jt.remoteCommand = command
-                jt.jobName = jobname
-                jt.workingDirectory = workdir
-                jt.nativeSpecification = select + " -P " + programme 
-                jt.email = email 
+                        jt = pbs.createJobTemplate()
+                        jt.remoteCommand = command
+                        jt.jobName = jobname
+                        jt.workingDirectory = workdir
+                        jt.nativeSpecification = select + " -P " + programme 
+                        jt.email = email 
 
-                try:
-                    jobid = pbs.runJob(jt)
-                    st.success('Your job has been submitted with id ' + jobid )
-                except:
-                    st.error( 'Your job could not be submitted')
-        else:
-            st.warning('PBS submission unavailable on this host')
+                        try:
+                            jobid = pbs.runJob(jt)
+                            st.success('Your job has been submitted with id ' + jobid )
+                        except:
+                            st.error( 'Your job could not be submitted. Check if your RP code is valid')
+                else:
+                    st.warning('PBS submission unavailable on this host')
 
 
+    st.download_button('Download PBS script', data=txt, file_name=st.session_state.dl_filename, on_click=set_dl_filename, use_container_width=True )

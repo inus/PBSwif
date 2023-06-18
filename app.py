@@ -11,8 +11,8 @@ from sidepanel import show_sidepanel
 PBS_HOSTS = ['login1', 'login2', 'globus.chpc.ac.za', 'Macbeth.local']
 
 st.set_page_config(    
-    page_title="CHPC PBS-Pro Job Script Helper",
-    page_icon="CHPC ICON",
+    page_title="PBS-Pro Job Script Helper",
+    page_icon=":o:",
     layout="wide",
     initial_sidebar_state="expanded",
 )

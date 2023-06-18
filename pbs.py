@@ -168,4 +168,4 @@ def show_pbs(st, pbs_tab):
                     st.warning('PBS submission unavailable on this host')
 
 
-    st.download_button('Download PBS script', data=txt, file_name=st.session_state.dl_filename, on_click=set_dl_filename, use_container_width=True )
+        st.download_button('Download PBS script', data=txt, file_name=st.session_state.dl_filename, on_click=set_dl_filename, use_container_width=True )

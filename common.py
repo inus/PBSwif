@@ -24,7 +24,7 @@ table_md = """
 """
 
 def show_info(st):
-  with st.expander("Show/hide CHPC Lengau queue information", expanded=False):
+  with st.expander("Show/hide CHPC Lengau PBS queue rules", expanded=False):
     st.markdown(table_md)
 
 def show_email_options(st):

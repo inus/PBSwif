@@ -8,18 +8,18 @@ from status import show_status
 from common import show_info
 from sidepanel import show_sidepanel
 
-PBS_HOSTS = ['login1', 'login2', 'globus.chpc.ac.za', 'Macbeth.local']
+PBS_HOSTS = ['login1', 'login2', 'globus.chpc.ac.za']
 
 st.set_page_config(    
-    page_title="PBS-Pro Job Script Helper",
-    page_icon=":o:",
+    page_title="Lengau PBS-Pro Job Script Helper",
+    page_icon=":leopard:",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 host = socket.gethostname()
 
-st.header('PBS web-interface')
+st.header('Lengau PBS web interface')
 
 pbs_tab, status_tab = st.tabs(["PBS Script", "Status"])
 

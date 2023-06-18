@@ -13,7 +13,7 @@ def show_pbs(st, pbs_tab):
 
     def set_dl_filename():
         return st.session_state.dl_filename
-        
+
 
     with pbs_tab:            
 
@@ -33,7 +33,7 @@ def show_pbs(st, pbs_tab):
                 
                     mails_on  = st.multiselect("Email on job events",
                                                 ['b', 'e', 'a'], default = 'e',
-                                                key='mails_on', disabled = not st.session_state.Notify,
+                                                key='mails_on', 
                                                 help = "Send email on job events: **b**egin/**e**nd/**a**bort"  )
                 
                     email = st.text_input("Email address", placeholder='your@email.addr',

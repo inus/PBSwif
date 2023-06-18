@@ -3,12 +3,9 @@ from common import DEFAULT_WALLTIME
 
 def show_sidepanel(st):
 
-    st.sidebar.header('PBS job settings')
-
     with st.sidebar:
 
-        #Notify  = st.checkbox("Send email", value=True, key="Notify", ) 
-        st.session_state.Notify=True
+        st.sidebar.header('PBS job settings')
 
         col1, col2 = st.columns([1, 2])
 

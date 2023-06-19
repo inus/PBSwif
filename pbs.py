@@ -22,7 +22,7 @@ import datetime
 from common import check_select, DEFAULT_WALLTIME 
 #ssh_clicked=False
 
-def show_pbs(st, _pbs_tab):
+def show_pbs(st, pbs_tab):
     
     pbs_text=''
 
@@ -33,26 +33,32 @@ def show_pbs(st, _pbs_tab):
         return st.session_state.dl_filename
 
 
-    with _pbs_tab:
+    with pbs_tab:
 
         if not DRMAA_avail and not st.session_state.use_ssh:
             st.warning('PBS Job submission needs to run on a login node or SSH, neither available')
 
         with st.expander('PBS Job Parameters'):
-                if st.session_state.user != "user":                 
-                    ssh_button = st.button("Submit via ssh as " + st.session_state.user,
+
+                leftcol1, rightcol1 = st.columns([1,1])
+
+                with leftcol1:
+                    if st.session_state.user != "user":                 
+                        ssh_button = st.button("Submit via ssh as " + st.session_state.user,
                                             key='ssh_button') #, on_click=save_ssh_clicked())
-                else:
-                    st.error('Invalid SSH username \"' + st.session_state.user + '\"')
-                    ssh_button = st.button('Please give a valid SSH username, not \"' \
+                    else:
+                        st.error('Invalid SSH username \"' + st.session_state.user + '\"')
+                        ssh_button = st.button('Please give a valid SSH username, not \"' \
                                            + st.session_state.user + '\"',
                                             key='ssh_button', disabled=True)
 
-                form_leftcol, form_rightcol = st.columns([1,2])
-            
+
+
+
                 with st.form(key='pbs_form'):
                                                         
                         clear_on_submit = False
+                        form_leftcol, form_rightcol = st.columns([1,2])
 
                         with form_leftcol:
                     
@@ -206,7 +212,7 @@ def show_pbs(st, _pbs_tab):
                                 except:
                                     st.error( 'PBS job not submitted. Check if your RP programme code is valid')
                         else: #ssh 
-                            if st.session_state.use_ssh and st.session_state.ssh_button:
+                            if st.session_state.use_ssh: #and st.session_state.ssh_button:
 
                                 if st.session_state.user == "user":
                                     st.error("Invalid cluster username \"{}\"".format(st.session_state.user))
@@ -268,37 +274,43 @@ def show_pbs(st, _pbs_tab):
                                     creds = st.session_state.user + '@' + st.session_state.server 
                                     
                                     if st.session_state.user == "user":
-                                        st.error("Please give a valid username instead of " + st.session_state.user)
+                                      st.error("Please give a valid username instead of " + st.session_state.user)
                                     else:
+                                      
+                                      #with st.spinner("Submitting job"):
                                         try:
                                             CMD = 'scp ' + filename + ' ' + creds + ':' + st.session_state.workdir                                        
-                                            exitcode = run(CMD,capture_output=True, shell=True, timeout=15.0)
-                                        except:
-                                            st.error("Could not copy file to server")
-                                            os.remove(filename)
+                                            exitcode = run(CMD,capture_output=True, shell=True) #, timeout=15.0, check=True)
+                                        except:# subprocess.TimeoutExpired as e:
+                                            st.error("Could not copy file to server, timeout " + filename)
+                                            #os.remove(filename)
                                             return
                                         
                                         st.info('File ' + filename + ' copied to cluster ' + \
                                                 st.session_state.workdir + '/' + st.session_state.dl_filename)
                                         try:
-                                            exitcode = run("ssh " + creds  + \
+                                            qsub_out = run("ssh " + creds  + \
                                                         ' qsub ' + st.session_state.workdir \
                                                         + '/' + st.session_state.dl_filename, 
-                                                        capture_output=True, shell=True, timeout=15.0)                                            
-                                        except:
-                                            if exitcode:
-                                              st.write("Qsub exitcode ", exitcode)
-                                            st.error("Could not run qsub on server")
+                                                        capture_output=True, shell=True) #, timeout=15.0, check=True)                                            
+                                        except:# subprocess.TimeoutExpired as e:
+                                            st.error("Timeout, Could not run qsub")
                             
-                                        if exitcode:
-                                            st.write("Qsub exitcode ", exitcode)
-                                            print("DEBUG Qsub exitcode ", exitcode)
+                                        if qsub_out.returncode == 0:
+                                            jobid = qsub_out.stdout.decode()
+                                            #st.info("Job ID: " + jobid )
 
                                         os.remove(filename)
-                                
-                st.download_button('Download PBS script ' + st.session_state.dl_filename, 
+                                        #st.success("Job ID: " + jobid )
+
+                ##with botrightcol:
+
+                st.download_button('Download PBS script to local disk' + st.session_state.dl_filename, 
                                    pbs_text,
                                    file_name=st.session_state.dl_filename, 
-                                   #on_click=download_file, 
                                    use_container_width=True )
+                    
+
+
+                                
                 

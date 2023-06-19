@@ -5,9 +5,9 @@ import re,json
 from subprocess import run
 import pandas as pd
 
-def show_test(st, _test_tab):
+def show_test(st, test_tab):
 
-  with _test_tab:
+  with test_tab:
 
     with st.form(key='test_form'):
 
@@ -18,12 +18,12 @@ def show_test(st, _test_tab):
         
                 if st.form_submit_button('Test SSH', use_container_width=True, type="primary"):
 
-                    try:
-                        output = run("ssh " + creds + ' ' + cmd, capture_output=True,
-                                      shell=True, timeout=5.0)
-                    except subprocess.TimeoutExpired:
-                        st.error("SSH {} failed ".format(creds))
-                        return 
+                    #try:
+                    output = run("ssh " + creds + ' ' + st.session_state.testcmd, capture_output=True, shell=True) 
+                    #, timeout=5.0, check=True)
+                    #except subprocess.TimeoutExpired:
+                    #    st.error("SSH {} failed ".format(creds))
+                    #    return 
 
                     lines = [x.decode() for x in output.stdout.splitlines() ]
 

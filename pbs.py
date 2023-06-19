@@ -1,7 +1,7 @@
 #pbs.py
 import streamlit as st
 from subprocess import run
-import os
+import os,socket
 
 try:
     import drmaa
@@ -9,16 +9,25 @@ try:
 except:
     DRMAA_avail = False
 
+
+PBS_HOSTS = ['login1', 'login2', 'globus.chpc.ac.za']
+host = socket.gethostname()
+
+if host in PBS_HOSTS:
+    CLUSTER_AVAIL=True
+else:
+    CLUSTER_AVAIL=False
+
 import datetime
 from common import check_select, DEFAULT_WALLTIME 
-ssh_clicked=False
+#ssh_clicked=False
 
 def show_pbs(st, _pbs_tab):
     
     pbs_text=''
 
-    def save_ssh_clicked():   
-        ssh_clicked=True
+#    def save_ssh_clicked():   
+#        ssh_clicked=True
 
     def set_dl_filename():
         return st.session_state.dl_filename
@@ -32,7 +41,7 @@ def show_pbs(st, _pbs_tab):
         with st.expander('PBS Job Parameters'):
                 if st.session_state.user != "user":                 
                     ssh_button = st.button("Submit via ssh as " + st.session_state.user,
-                                            key='ssh_button', on_click=save_ssh_clicked())
+                                            key='ssh_button') #, on_click=save_ssh_clicked())
                 else:
                     st.error('Invalid SSH username \"' + st.session_state.user + '\"')
                     ssh_button = st.button('Please give a valid SSH username, not \"' \
@@ -181,10 +190,15 @@ def show_pbs(st, _pbs_tab):
                                 except:
                                     pass
 
+                               # select = check_select(st)
+
+                                select, Nodes, Cores, Memory, Queue, MPIprocs, GPUs = check_select(st)
+
                                 jt = pbs.createJobTemplate()
                                 jt.remoteCommand = command
                                 jt.jobName = jobname
                                 jt.workingDirectory = workdir
+
                                 jt.nativeSpecification = select + " -P " + programme 
                                 jt.email = email 
 
@@ -247,12 +261,14 @@ def show_pbs(st, _pbs_tab):
                                     
                                     if st.session_state.user == "user":
                                         st.error("Please give a valid username instead of " + st.session_state.user)
+                                    else:
                                         try:
                                             CMD = 'scp ' + filename + ' ' + creds + ':' + st.session_state.workdir                                        
                                             exitcode = run(CMD,capture_output=True, shell=True, timeout=15.0)
                                         except:
                                             st.error("Could not copy file to server")
-                                    else:
+                                            return
+                                        
                                         st.info('File ' + filename + ' copied to cluster ' + \
                                                 st.session_state.workdir + '/' + st.session_state.dl_filename)
                                         try:

@@ -29,7 +29,7 @@ def show_status(st, _status_tab):
                 df = pd.read_json(jobdetail.stdout.decode() )
                 ndf = pd.json_normalize(df.Jobs)
                 ndf.insert(0, 'Job ID', jobid.decode())
-                ndf.insert(0, 'Exit', "OK" if ndf.iloc[0].Exit_status == 0 else "Fail")
+                #ndf.insert(0, 'Exit', "OK" if ndf.iloc[0].Exit_status == 0 else "Fail")
                 df_all = pd.concat([df_all, ndf])
 
             try:

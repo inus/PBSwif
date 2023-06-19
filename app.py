@@ -11,9 +11,6 @@ from common import show_info
 from test import show_test
 from qstat import show_qstat
 
-
-PBS_HOSTS = ['login1', 'login2', 'globus.chpc.ac.za']
-
 st.set_page_config(    
     page_title="PBS-Pro Job Script Helper",
     page_icon=":leopard:",
@@ -21,7 +18,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-host = socket.gethostname()
 
 st.header('PBS web interface')
 

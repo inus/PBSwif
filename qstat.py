@@ -1,10 +1,10 @@
 #qstat.py 
 import streamlit as st
-
 import re,json
 from subprocess import run
 import pandas as pd
-from pbs import DRMAA_avail
+from pbs import DRMAA_avail, CLUSTER_AVAIL, host
+
 
 def show_qstat(st, _qstat_tab):
 
@@ -12,44 +12,37 @@ def show_qstat(st, _qstat_tab):
 
     with st.form(key='qstat_form'):
 
-        if st.session_state.user  != "user":
-            qstat = st.form_submit_button('Cluster Job Queue Status', use_container_width=True, type="primary")
-        else:           
-            st.error("Invalid SSH username")    
-            qstat = st.form_submit_button('Qstat', use_container_width=True, type="primary",
-                                           disabled=True)
-            return
-        
+        qstat = st.form_submit_button('Cluster Queue Status', use_container_width=True, type="primary")
         if qstat:
-
-            if st.session_state.use_ssh and not DRMAA_avail:
-                creds = st.session_state.user + '@' + st.session_state.server 
                 cmd = 'qstat -Qa '
-
-                if st.session_state.user != "user":
+                if CLUSTER_AVAIL:
                     try:
-                        qstat = run("ssh " + creds + ' ' + cmd, capture_output=True, shell=True)
+                        qstatresult = run(cmd, capture_output=True, shell=True, timeout=15.0)
                     except:
-                        st.error("SSH Qstat {} failed ".format(creds))
+                        st.error("Failed qstat on local host {}".format(host))
                         return 
-                else:
-                    st.error("Give a valid cluster username, not {}".format(st.session_state.user))
-                
-            elif DRMAA_avail:
-                try:
-                    qstat = run(cmd, capture_output=True, shell=True)
-                except:
-                    st.error("Qstat {} failed ".format(creds))
-                    return 
+                else: #ssh                         
+                        if st.session_state.user != "user":
+                            creds = st.session_state.user + '@' + st.session_state.server 
+                            with st.spinner('Retrieving queue status'):
+                                try:
+                                    qstatresult = run("ssh " + creds + ' ' + cmd, capture_output=True, shell=True, timeout=15.0)
+                                except:
+                                    st.error("SSH qstat {} failed ".format(creds))
+                                    return 
+                            st.success('Done!')    
+                        else:
+                            st.error("Give a valid cluster username for ssh, not {}".format(st.session_state.user))
 
-            lines = [x.decode() for x in qstat.stdout.splitlines()]
-            data = [ l.split() for l in lines]
+                if qstatresult:
+                  lines = [x.decode() for x in qstatresult.stdout.splitlines()]
+                  data = [ l.split() for l in lines]
 
-            if len(data) > 0:
-                dcolumns = data[0]
-                data.remove(data[0]) 
-                data.remove(data[0]) # remove ---- ---- ----
-                df = pd.DataFrame(data)
-                df.columns = dcolumns                
-                st.dataframe(df, use_container_width=True)
+                  if len(data) > 0:
+                    dcolumns = data[0]
+                    data.remove(data[0]) 
+                    data.remove(data[0]) # remove ---- ---- ----
+                    df = pd.DataFrame(data)
+                    df.columns = dcolumns                
+                    st.dataframe(df, use_container_width=True)
  

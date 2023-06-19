@@ -3,10 +3,11 @@
 import streamlit as st
 import socket
 
+from sidepanel import show_sidepanel
+
 from pbs import show_pbs
 from status import show_status
 from common import show_info
-from sidepanel import show_sidepanel
 from test import show_test
 from qstat import show_qstat
 
@@ -24,7 +25,7 @@ host = socket.gethostname()
 
 st.header('PBS web interface')
 
-pbs, status, test, qstat = st.tabs(["PBS Script", "Status", "TestSSH", "Qstat"])
+pbs, status, test, qstat = st.tabs(["PBS Script", "Job Status", "Shell", "Qstat"])
 
 show_sidepanel(st)
 

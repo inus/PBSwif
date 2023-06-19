@@ -1,23 +1,43 @@
 #pbs.py
+import streamlit as st
+from subprocess import run
+import os
 
 try:
-  import drmaa
-  DRMAA_avail = True
+    import drmaa
+    DRMAA_avail = True
 except:
     DRMAA_avail = False
 
 import datetime
 from common import check_select, DEFAULT_WALLTIME 
+ssh_clicked=False
 
-def show_pbs(st, pbs_tab):
+def show_pbs(st, _pbs_tab):
+    
+    pbs_text=''
+
+    def save_ssh_clicked():   
+        ssh_clicked=True
 
     def set_dl_filename():
         return st.session_state.dl_filename
 
 
-    with pbs_tab:            
+    with _pbs_tab:
 
-        with st.expander('PBS parameters'):
+        if not DRMAA_avail and not st.session_state.use_ssh:
+            st.warning('PBS Job submission needs to run on a login node or SSH, neither available')
+
+        with st.expander('PBS Job Parameters'):
+                if st.session_state.user != "user":                 
+                    ssh_button = st.button("Submit via ssh as " + st.session_state.user,
+                                            key='ssh_button', on_click=save_ssh_clicked())
+                else:
+                    st.error('Invalid SSH username \"' + st.session_state.user + '\"')
+                    ssh_button = st.button('Please give a valid SSH username, not \"' \
+                                           + st.session_state.user + '\"',
+                                            key='ssh_button', disabled=True)
 
                 form_leftcol, form_rightcol = st.columns([1,2])
             
@@ -42,7 +62,6 @@ def show_pbs(st, pbs_tab):
                             email = st.text_input("Email address", placeholder='your@email.addr',
                                                 key='email', help="Fill in to receive email")
                             
-
                             col_left, col_right = st.columns([1,1])
 
                             with col_left:
@@ -52,14 +71,12 @@ def show_pbs(st, pbs_tab):
                                 join  = st.checkbox("Join files", key="join", value=False,
                                                 help="Combine output and error into one file")
                         
-
-
                         with form_rightcol:
                             errorfile = st.text_input("Error file name", key='error',
                                                     help='Leave empty for generated jobname.job-id')
                             outfile = st.text_input("Output file name", key='out',
                                                     help="Leave empty for generated jobname.job-id"  )
-                            workdir = st.text_input("Working directory", key='workdir', 
+                            workdir = st.text_input("Working directory", value = 'lustre', key='workdir', 
                                                     help="Fill in to change directory to this")                     
                             modules = st.text_area("Modules and initialization code", 
                                                 value="module load chpc/BIOMODULES python",
@@ -68,86 +85,95 @@ def show_pbs(st, pbs_tab):
                                                 value="echo Hello from $(hostname) on $(date)", 
                                                 key='command', help='Commands, switches and arguments')
 
+                        dl_filename = st.text_input("Script file name", key='dl_filename',
+                                            label_visibility='collapsed', 
+                                            value=st.session_state.jobname + '.pbs')
 
                         if st.form_submit_button('Preview PBS script', use_container_width=True, type="primary"):
                             if not st.session_state.programme:
                                 st.error("The allocated CHPC Research Programme code, e.g. 'ABCD1234' is required to submit jobs")
                             if not st.session_state.email:
                                 st.warning("No email address given, notification mail directive omitted")
+
                             select, Nodes, Cores, Memory, Queue, MPIprocs, GPUs = check_select(st)
+
                             if st.session_state.bash:
                                 st.text("#!/bin/bash")
-                            st.text("#PBS -P " + programme)
+                                pbs_text +=  "#!/bin/bash\n"
+                                qsub_cmd = 'qsub '
+
+                            if programme:
+                                st.text("#PBS -P " + programme)
+                                pbs_text += "#PBS -P " + programme + '\n'
+                                qsub_cmd += ' -P ' + programme
+                            else:
+                                st.text("#PBS -P " + 'RPCODE')
+                                pbs_text += "#PBS -P RPCODE\n"
+                                qsub_cmd += ' -P ' + 'RPCODE'
+
+                            qsub_cmd += ' -N ' + st.session_state.jobname  + ' '
+                            pbs_text += '#PBS -N' + st.session_state.jobname + '\n'
+
                             if email and st.session_state.Notify:
-                                st.text("#PBS -M " + email)
+                                st.text("#PBS -M " + email) 
+                                pbs_text += "#PBS -M " + email + '\n'
                                 st.text("#PBS -m " + ''.join(mails_on))
+                                pbs_text = "#PBS -m " + ''.join(mails_on) +'\n'
+                                
                             st.text("#PBS " + select)
+                            pbs_text = "#PBS " + select + '\n'
+                            qsub_cmd += select
+
                             st.text("#PBS -q " + Queue)
-                            if st.session_state.Vars: st.text("#PBS -V")
-                            if st.session_state.jobname: st.text("#PBS -N " + st.session_state.jobname)
-                            if st.session_state.Xfwd: st.text("#PBS -X")            
+                            pbs_text = "#PBS -q " + Queue + '\n'
+                            qsub_cmd += ' -q ' + Queue
+
+                            ts = 'walltime=' + str(st.session_state.walltime ) + ':' + \
+                                               str(st.session_state.walltime_m)
+                            st.text("#PBS -l " + ts)
+                            pbs_text += "#PBS -l " + ts + '\n'
+                            qsub_cmd += ' -l ' + ts 
+
+
+                            if st.session_state.Vars:
+                                st.text("#PBS -V")
+                                pbs_text += "#PBS -V\n"
+                                qsub_cmd +=  ' -V '
+
+                            if st.session_state.jobname: 
+                                st.text("#PBS -N " + st.session_state.jobname)
+                                pbs_text += "#PBS -N " + st.session_state.jobname + '\n'
+
+                            if st.session_state.Xfwd: 
+                                st.text("#PBS -X")
+                                pbs_text += "#PBS -X \n"
+                                qsub_cmd +=  ' -X '
+
                             if st.session_state.Interactive:
                                 st.text("#PBS -I")
-                                st.info('You can start an interactive jobs as below')
-                                cmd = 'qsub '
-                                if st.session_state.Interactive: cmd = cmd + '-I '
-                                if st.session_state.Vars: cmd = cmd + '-V '
-                                if st.session_state.Xfwd: cmd = cmd + '-X '
-                                cmd = cmd + '-N ' + st.session_state.jobname 
-                                cmd = cmd + '-q ' + Queue 
-                                cmd = cmd + ' ' + select
-                                st.text(cmd)
-                            else:
+                                pbs_text += "#PBS -I\n"
+                                qsub_cmd += ' -I' 
+                                st.info('Start an interactive cluster job as below, use your own RPCODE')
+                                st.text(qsub_cmd, help="Copy and paste to a ssh session on a login node")
+                            else: 
+                                # join error and output files if not interactive
                                 if st.session_state.join:
                                     st.text('#PBS -j oe')
-                                if st.session_state.workdir:
-                                    st.text('cd ' + st.session_state.workdir)
-                                st.text(modules)
-                                st.text(command)
+                                    pbs_text += '#PBS -j oe\n'
 
-                        if st.session_state.bash:
-                            txt = ("#!/bin/bash\n")
-                        else:
-                            txt = ('## CHPC PBSwif generated script\n')
-
-                        txt = txt + '## Script generated on ' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '\n'
-
-                        txt = txt + "#PBS -P " + programme + '\n'
-
-                        if email:
-                                txt = txt + "#PBS -M " + email + '\n'
-                                txt = txt + "#PBS -m " + ''.join(mails_on) + '\n'
-                        select, Nodes, Cores, Memory, Queue, MPIprocs, GPUs = check_select(st)
-                        txt = txt + "#PBS " + select + '\n'
-                        txt = txt + "#PBS -q " + Queue + '\n'
-                        if st.session_state.Vars:
-                            txt = txt + "#PBS -V" + '\n'
-                        if st.session_state.jobname:
-                            txt = txt + "#PBS -N " + st.session_state.jobname + '\n'
-                
-                        if st.session_state.Interactive:
-                            txt = txt + "#PBS -I" + '\n'
-                            if st.session_state.Vars: txt = txt + '#PBS -V ' + '\n'
-                            if st.session_state.Xfwd: txt = txt + '#PBS -X ' + '\n'
-                            txt = txt + '#PBS -N ' + st.session_state.jobname + '\n'
-                            txt = txt + '#PBS -q ' + st.session_state.Queue + '\n'
-                            txt = '#PBS ' + select + '\n'
-                        else:
                             if st.session_state.workdir:
-                                txt = txt + 'cd ' + st.session_state.workdir + '\n'
-                            if st.session_state.join:
-                                txt = txt + '#PBS -j oe' + '\n'
+                                    st.text('cd ' + st.session_state.workdir)
+                                    pbs_text += 'cd ' + st.session_state.workdir + '\n'
 
-                            txt = txt + modules + '\n'
-                            txt = txt + command + '\n'
+                                
+                            st.text(modules)
+                            pbs_text += modules + '\n'
 
-                            dl_filename = st.text_input("Script file name", key='dl_filename',
-                                                label_visibility='collapsed', 
-                                                value=st.session_state.jobname + '.pbs.txt')
-
+                            st.text(command) 
+                            pbs_text += command + '\n' 
 
                         if DRMAA_avail:
-                            submission  = st.form_submit_button('Submit PBS job script to Lengau Cluster', use_container_width=True)
+                            submission  = st.form_submit_button('Submit job script via DRMAA')
                             if submission:
                                 pbs = drmaa.Session()
                                 try:
@@ -164,11 +190,90 @@ def show_pbs(st, pbs_tab):
 
                                 try:
                                     jobid = pbs.runJob(jt)
-                                    st.success('Your job has been submitted with id ' + jobid )
+                                    st.success('Job has been submitted to PBS, job id **[' + jobid + ']**')
                                 except:
-                                    st.error( 'Your job could not be submitted. Check if your RP code is valid')
-                        else:
-                            st.warning('PBS submission unavailable on this host')
+                                    st.error( 'PBS job not submitted. Check if your RP programme code is valid')
+                        else: #ssh 
+                            if st.session_state.use_ssh and st.session_state.ssh_button:
 
+                                if st.session_state.user == "user":
+                                    st.error("Invalid cluster username \"{}\"".format(st.session_state.user))
+                                    return 
+                                if not st.session_state.programme:
+                                    st.error('No RP Code given')
+                                    return 
+                                else:
+                                    filename = '/tmp/' + st.session_state.dl_filename 
+                                    fp = open( filename, 'w')
+                                    if st.session_state.bash:
+                                        txt = ("#!/bin/bash\n")
+                                    else:
+                                        txt = ('## PBSwif autogenerated script\n')
+                                    txt = txt + '## PBS Script generated on ' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '\n'
+                                    txt = txt + "#PBS -P " + programme + '\n'
+                                    if email:
+                                            txt = txt + "#PBS -M " + email + '\n'
+                                            txt = txt + "#PBS -m " + ''.join(mails_on) + '\n'
+                                    select, Nodes, Cores, Memory, Queue, MPIprocs, GPUs = check_select(st)
+                                    txt = txt + "#PBS " + select + '\n'
+                                    txt = txt + "#PBS -q " + Queue + '\n'
+                                    if st.session_state.Vars:
+                                        txt = txt + "#PBS -V" + '\n'
+                                    if st.session_state.jobname:
+                                        txt = txt + "#PBS -N " + st.session_state.jobname + '\n'
 
-                st.download_button('Download PBS script', data=txt, file_name=st.session_state.dl_filename, on_click=set_dl_filename, use_container_width=True )
+                                    if st.session_state.Interactive:
+                                        txt = txt + "#PBS -I" + '\n'
+                                        if st.session_state.Vars: 
+                                            txt = txt + '#PBS -V ' + '\n'
+                                        if st.session_state.Xfwd:
+                                            txt = txt + '#PBS -X ' + '\n'
+                                        txt = txt + '#PBS -N ' + st.session_state.jobname + '\n'
+                                        txt = txt + '#PBS -q ' + st.session_state.Queue + '\n'
+                                        txt = '#PBS ' + select + '\n'
+                                    else:
+                                        if st.session_state.workdir:
+                                            txt = txt + 'cd ' + st.session_state.workdir + '\n'
+                                        if st.session_state.join:
+                                            txt = txt + '#PBS -j oe' + '\n'
+
+                                        txt = txt + modules + '\n'
+                                        txt = txt + command + '\n'
+
+                                    fp.write(txt)
+                                    fp.close()
+                                    pbs_text += txt
+                                    creds = st.session_state.user + '@' + st.session_state.server 
+                                    
+                                    if st.session_state.user == "user":
+                                        st.error("Please give a valid username instead of " + st.session_state.user)
+                                        try:
+                                            CMD = 'scp ' + filename + ' ' + creds + ':' + st.session_state.workdir                                        
+                                            exitcode = run(CMD,capture_output=True, shell=True, timeout=15.0)
+                                        except:
+                                            st.error("Could not copy file to server")
+                                    else:
+                                        st.info('File ' + filename + ' copied to cluster ' + \
+                                                st.session_state.workdir + '/' + st.session_state.dl_filename)
+                                        try:
+                                            exitcode = run("ssh " + creds  + \
+                                                        ' qsub ' + st.session_state.workdir \
+                                                        + '/' + st.session_state.dl_filename, 
+                                                        capture_output=True, shell=True, timeout=15.0)                                            
+                                        except:
+                                            if exitcode:
+                                              st.write("Qsub exitcode ", exitcode)
+                                            st.error("Could not run qsub on server")
+                            
+                                        if exitcode:
+                                            st.write("Qsub exitcode ", exitcode)
+                                            print("DEBUG Qsub exitcode ", exitcode)
+
+                                
+                st.download_button('Download PBS script ' + st.session_state.dl_filename, 
+                                   pbs_text,
+                                   file_name=st.session_state.dl_filename, 
+                                   #on_click=download_file, 
+                                   use_container_width=True )
+                
+                #os.remove('/tmp/' + st.session_state.dl_filename)

@@ -1,4 +1,5 @@
 #sidepanel.py 
+import streamlit as st
 from common import DEFAULT_WALLTIME
 
 def show_sidepanel(st):
@@ -14,9 +15,9 @@ def show_sidepanel(st):
             with col1:
                 Nodes = st.number_input("Nodes",value=1, key='Nodes')
                 Cores = st.selectbox("Cores",  [1,2,3,4,5,6,7,8,9,10,11,12,
-                                            13,14,15,16,17,18,19,20,21,22,23,24,25,28,56], index=22, key='Cores')
+                                            13,14,15,16,17,18,19,20,21,22,23,24,25,28,56], index=2, key='Cores')
                 MPIprocs = st.selectbox("MPI Cores", [1,2,3,4,5,6,7,8,9,10,11,12,
-                                            13,14,15,16,17,18,19,20,21,22,23,24,25,28,56], index=22, key='MPIprocs')
+                                            13,14,15,16,17,18,19,20,21,22,23,24,25,28,56], index=2, key='MPIprocs')
             
                 Memory = st.selectbox("Memory in GB",  [60,120,500,1000], index=1, key='Memory')
                 GPUs = st.selectbox("GPUs",  [0,1,2,3,4], key='GPUs')
@@ -24,7 +25,6 @@ def show_sidepanel(st):
 
             with col2:     
 
-                #Place  = st.checkbox("Select job placement", key='Place', label_visibility='collapsed')
                 PlaceSelect = st.selectbox("Placement", ["none", "free", "excl"], key='PlaceSelect')
 
                 Interactive  = st.checkbox("Interactive", key="Interactive")
@@ -44,11 +44,11 @@ def show_sidepanel(st):
                                             key='Queue')
             st.divider()
 
-        with st.expander('Connection detail'):
+        with st.expander('SSH Connection'):
 
             use_ssh = st.checkbox('Use via SSH', key='use_ssh', value=True)            
             #keys_or_pass = st.radio('Use SSH key or password?', ('Key', 'Password'))
-            user = st.text_input('user', value='ischeepers', #XXX 
+            user = st.text_input('user', value='user',
                                    placeholder='user', key='user' )
             #password = st.text_input('password', placeholder='pass123', )
             server= st.text_input('SSH server', value='scp.chpc.ac.za', #XXX 
@@ -62,6 +62,7 @@ def show_sidepanel(st):
             web_password = st.text_input('Website password', placeholder='webpass123', )
 
             st.divider()
+
 
 
 

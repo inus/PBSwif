@@ -88,10 +88,10 @@ def show_pbs(st, _pbs_tab):
                             workdir = st.text_input("Working directory", value = 'lustre', key='workdir', 
                                                     help="Fill in to change directory to this")                     
                             modules = st.text_area("Modules and initialization code", 
-                                                value="module load chpc/BIOMODULES python",
+                                                placeholder="module load chpc/BIOMODULES python",
                                                 key='modules', help="Any other initialization")
                         command = st.text_input("Commandline", 
-                                                value="echo Hello from $(hostname) on $(date)", 
+                                                placeholder="echo Hello from $(hostname) on $(date)", 
                                                 key='command', help='Commands, switches and arguments')
 
                         dl_filename = st.text_input("Script file name", key='dl_filename',
@@ -176,10 +176,10 @@ def show_pbs(st, _pbs_tab):
 
                                 
                             st.text(modules)
-                            pbs_text += modules + '\n'
+                            pbs_text += st.session_state.modules + '\n'
 
                             st.text(command) 
-                            pbs_text += command + '\n' 
+                            pbs_text += st.session_state.command + '\n' 
 
                         if DRMAA_avail:
                             submission  = st.form_submit_button('Submit job script via DRMAA')
@@ -190,12 +190,10 @@ def show_pbs(st, _pbs_tab):
                                 except:
                                     pass
 
-                               # select = check_select(st)
-
                                 select, Nodes, Cores, Memory, Queue, MPIprocs, GPUs = check_select(st)
 
                                 jt = pbs.createJobTemplate()
-                                jt.remoteCommand = command
+                                jt.remoteCommand = st.session_state.command
                                 jt.jobName = jobname
                                 jt.workingDirectory = workdir
 
@@ -251,12 +249,22 @@ def show_pbs(st, _pbs_tab):
                                         if st.session_state.join:
                                             txt = txt + '#PBS -j oe' + '\n'
 
-                                        txt = txt + modules + '\n'
-                                        txt = txt + command + '\n'
+
+                                    txt = txt + "## Modules\n"
+                                    txt = txt + st.session_state.modules + '\n'
+
+                                    txt = txt + "## Command \n"
+
+                                    txt = txt + st.session_state.command + '\n'
+
+                                    txt = txt + "## End\n"
+
+                                    pbs_text += txt
 
                                     fp.write(txt)
                                     fp.close()
-                                    pbs_text += txt
+
+
                                     creds = st.session_state.user + '@' + st.session_state.server 
                                     
                                     if st.session_state.user == "user":
@@ -267,6 +275,7 @@ def show_pbs(st, _pbs_tab):
                                             exitcode = run(CMD,capture_output=True, shell=True, timeout=15.0)
                                         except:
                                             st.error("Could not copy file to server")
+                                            os.remove(filename)
                                             return
                                         
                                         st.info('File ' + filename + ' copied to cluster ' + \
@@ -285,6 +294,7 @@ def show_pbs(st, _pbs_tab):
                                             st.write("Qsub exitcode ", exitcode)
                                             print("DEBUG Qsub exitcode ", exitcode)
 
+                                        os.remove(filename)
                                 
                 st.download_button('Download PBS script ' + st.session_state.dl_filename, 
                                    pbs_text,
@@ -292,4 +302,3 @@ def show_pbs(st, _pbs_tab):
                                    #on_click=download_file, 
                                    use_container_width=True )
                 
-                #os.remove('/tmp/' + st.session_state.dl_filename)

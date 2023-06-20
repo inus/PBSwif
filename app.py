@@ -2,6 +2,7 @@
 
 import streamlit as st
 import socket
+import sqlite3
 
 from sidepanel import show_sidepanel
 
@@ -17,7 +18,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
-
 
 st.header('PBS web interface')
 

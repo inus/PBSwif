@@ -104,3 +104,14 @@ def check_select(st):
     return select, Nodes, Cores, Memory, Queue, MPIprocs, GPUs
 
 
+def save_settings():
+    fp = open('settings.conf', 'w')
+    fp.write('sshuser=' + st.session_state.sshuser)
+    fp.write('programme=' + st.session_state.programme)
+    fp.close()
+
+def read_settings():
+    fp = open('settings.conf',)
+#    fp.read('sshuser=' + st.session_state.sshuser)
+#    fp.write('programme=' + st.session_state.programme)
+#    fp.close()

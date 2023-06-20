@@ -52,12 +52,8 @@ def show_pbs(st, pbs_tab):
                                            + st.session_state.user + '\"',
                                             key='ssh_button', disabled=True)
 
-
-
-
                 with st.form(key='pbs_form'):
                                                         
-                        clear_on_submit = False
                         form_leftcol, form_rightcol = st.columns([1,2])
 
                         with form_leftcol:
@@ -258,13 +254,9 @@ def show_pbs(st, pbs_tab):
 
                                     txt = txt + "## Modules\n"
                                     txt = txt + st.session_state.modules + '\n'
-
                                     txt = txt + "## Command \n"
-
                                     txt = txt + st.session_state.command + '\n'
-
                                     txt = txt + "## End\n"
-
                                     pbs_text += txt
 
                                     fp.write(txt)
@@ -278,29 +270,40 @@ def show_pbs(st, pbs_tab):
                                     else:
                                       
                                       #with st.spinner("Submitting job"):
-                                        try:
+                                        #try:
                                             CMD = 'scp ' + filename + ' ' + creds + ':' + st.session_state.workdir                                        
+                                            print("DEBUG before ssh scp copy")
                                             exitcode = run(CMD,capture_output=True, shell=True) #, timeout=15.0, check=True)
-                                        except:# subprocess.TimeoutExpired as e:
-                                            st.error("Could not copy file to server, timeout " + filename)
+                                            print("DEBUG after ssh scp copy " + exitcode.returncode)
+
+                                        #except:# subprocess.TimeoutExpired as e:
+                                            if exitcode.returncode < 0:
+                                                st.error("Could not copy file to server, timeout " + filename + exitcode.returncode)
                                             #os.remove(filename)
                                             return
                                         
-                                        st.info('File ' + filename + ' copied to cluster ' + \
+                                            st.info('File ' + filename + ' copied to cluster ' + \
                                                 st.session_state.workdir + '/' + st.session_state.dl_filename)
-                                        try:
+#                                        #try:
+                                            print("DEBUG before ssh qsub run")
+
                                             qsub_out = run("ssh " + creds  + \
                                                         ' qsub ' + st.session_state.workdir \
                                                         + '/' + st.session_state.dl_filename, 
                                                         capture_output=True, shell=True) #, timeout=15.0, check=True)                                            
-                                        except:# subprocess.TimeoutExpired as e:
-                                            st.error("Timeout, Could not run qsub")
+                                        #except:# subprocess.TimeoutExpired as e:
+                                            if qsub_out.returncode < 0:
+                                                st.error("Timeout, Could not run qsub " + qsub_out.returncode)
                             
-                                        if qsub_out.returncode == 0:
-                                            jobid = qsub_out.stdout.decode()
+                                            if qsub_out.returncode == 0:
+                                                jobid = qsub_out.stdout.decode()
+                                                print("DEBUG after qsub " + jobid)
+
                                             #st.info("Job ID: " + jobid )
 
-                                        os.remove(filename)
+                                            os.remove(filename)
+                                            print("DEBUG delete local pbs file")
+                                    
                                         #st.success("Job ID: " + jobid )
 
                 ##with botrightcol:

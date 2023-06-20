@@ -10,6 +10,8 @@ def show_qstat(st, qstat_tab):
 
   with qstat_tab:
 
+
+
     with st.form(key='qstat_form'):
 
         qstat = st.form_submit_button('Cluster Queue Status', use_container_width=True, type="primary")
@@ -24,24 +26,25 @@ def show_qstat(st, qstat_tab):
 
                 cmd = 'qstat -Qa '
                 if CLUSTER_AVAIL:
-                    try:
-                        print("DEBUG: call " + cmd )
+                    #try:
+                        print("DEBUG: local qstat call" + cmd )
 
                         qstatresult = run(cmd, capture_output=True, shell=True) #, timeout=15.0, check=true)
-                    except:
-                        st.error("Failed qstat on local host {}".format(host))
-                        return 
+                    #except:
+                    #    st.error("Failed qstat on local host {}".format(host))
+                    #    return 
                 else: #ssh                         
                         if st.session_state.user != "user":
                             creds = st.session_state.user + '@' + st.session_state.server 
                             #with st.spinner('Retrieving queue status'):
-                            try:
-                                print("DEBUG: call qstat ssh" + cmd )
-                                qstatresult = run("ssh " + creds + ' ' + cmd, capture_output=True,
-                                                   shell=True) #, timeout=15.0)
-                            except:
-                                st.error("SSH qstat {} failed ".format(creds))
-                                return 
+                            #try:
+                            print("DEBUG: before QSTAT QA" + cmd )
+                            qstatresult = run("ssh " + creds + ' ' + cmd, capture_output=True,shell=True)
+                            print("DEBUG: after: " + str(qstatresult.returncode) )
+#                            st.info("Retrieved job " + str(qstatresult.returncode) )
+                            #except:
+                            #    st.error("SSH qstat {} failed ".format(creds))
+                            #    return 
                             #st.success('Done!')    
                         else:
                             st.error("Give a valid cluster username for ssh, not {}".format(st.session_state.user))

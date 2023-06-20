@@ -13,25 +13,20 @@ def show_sidepanel(st):
             col1, col2 = st.columns([1, 2])
 
             with col1:
-                Nodes = st.number_input("Nodes",value=1, key='Nodes')
+                Nodes = st.number_input("Nodes", value=1, key='Nodes', min_value=1, max_value=1000)
                 Cores = st.selectbox("Cores",  [1,2,3,4,5,6,7,8,9,10,11,12,
-                                            13,14,15,16,17,18,19,20,21,22,23,24,25,28,56], index=2, key='Cores')
+                                            13,14,15,16,17,18,19,20,21,22,23,24,25,28,56], index=12, key='Cores')
                 MPIprocs = st.selectbox("MPI Cores", [1,2,3,4,5,6,7,8,9,10,11,12,
-                                            13,14,15,16,17,18,19,20,21,22,23,24,25,28,56], index=2, key='MPIprocs')
-            
+                                            13,14,15,16,17,18,19,20,21,22,23,24,25,28,56], index=12, key='MPIprocs')            
                 Memory = st.selectbox("Memory in GB",  [60,120,500,1000], index=1, key='Memory')
                 GPUs = st.selectbox("GPUs",  [0,1,2,3,4], key='GPUs')
 
-
             with col2:     
-
                 PlaceSelect = st.selectbox("Placement", ["none", "free", "excl"], key='PlaceSelect')
-
                 Interactive  = st.checkbox("Interactive", key="Interactive")
                 Vars  = st.checkbox("Keep env vars", key="Vars")
                 Xfwd  = st.checkbox("Forward X", key="Xfwd")
                 CPUtype = st.selectbox("CPU type", ['haswell','haswell_fat',], key='cputype')
-
             
             timecol1, timecol2 = st.columns([1,1])
             with timecol1:
@@ -48,20 +43,33 @@ def show_sidepanel(st):
 
             use_ssh = st.checkbox('Use via SSH', key='use_ssh', value=True)            
             #keys_or_pass = st.radio('Use SSH key or password?', ('Key', 'Password'))
-            user = st.text_input('user', value='user',
-                                   placeholder='user', key='user' )
+            user = st.text_input('user', value='user', key='user' )
+                                   #placeholder='user',
             #password = st.text_input('password', placeholder='pass123', )
-            server= st.text_input('SSH server', value='scp.chpc.ac.za', #XXX 
-                                   placeholder='lengau.chpc.ac.za', key='server')
+            server= st.text_input('SSH server', value='scp.chpc.ac.za', key='server')  #XXX 
+                                   #placeholder='lengau.chpc.ac.za',
 
             #ssh_pubkey = st.text_input('SSH public key file', value='~/.ssh/id_rsa.pub ' )
             #ssh_privkey = st.text_input('SSH private key file location', value='~/.ssh/id_rsa' )
 
-            website = st.text_input('Aux Website', placeholder='https://users.chpc.ac.za', )
-            web_username = st.text_input('Website login name', placeholder='username@gmail', )
-            web_password = st.text_input('Website password', placeholder='webpass123', )
+            #website = st.text_input('Aux Website', placeholder='https://users.chpc.ac.za', )
+            #web_username = st.text_input('Website login name', placeholder='username@gmail', )
+            #web_password = st.text_input('Website password', placeholder='webpass123', )
 
             st.divider()
+
+            '''
+            if st.session_state.user == "user":
+
+                with st.form("user_form"):
+                    st.write("Real username needed")
+                    realuser = st.text_input("Cluster ssh username", key="realuser",)  
+                    submitted = st.form_submit_button("Add real username")
+                    if submitted:
+                        st.session_state.user = realuser
+                        
+                st.write("Changed to " + realuser)
+                '''
 
 
 

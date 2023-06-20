@@ -13,6 +13,8 @@ def show_status(st, status_tab):
 
   with status_tab:
 
+        jobdetails = st.checkbox('Retrieve full job history', key='jobdetails')
+
         if DRMAA_avail:
             try:
               jobs = run("qstat -xu $USER | awk '{ print $1 }' | tail -12 ",capture_output=True,shell=True)
@@ -38,44 +40,74 @@ def show_status(st, status_tab):
               pass
 
         else:  #Use SSH
-           if st.session_state.use_ssh:
+           if st.session_state.use_ssh and (st.session_state.user != "user"):
                 creds = st.session_state.user + '@' + st.session_state.server 
                 cmd = 'qstat -xu ' + st.session_state.user + " | awk '{ print $1 }' " 
                 if st.session_state.user != "user":
-                  print("DEBUG: call qstat ssh")
-                  try:
-                      jobs = run("ssh " + creds + ' ' + cmd, capture_output=True, shell=True) # check=True,timeout=15)
-                      
-                      print("DEBUG: call ssh " + cmd )
+                  print("DEBUG: before call qstat ssh")
+                  #try:
+                  jobs = run("ssh " + creds + ' ' + cmd, capture_output=True, shell=True) # check=True,timeout=15)                      
+                  print("DEBUG: after call ssh x" + cmd )
+#                  print(jobs)
 
-                      lines = [x.decode() for x in jobs.stdout.splitlines() ]
-                      jobids = [ x for x in lines if re.search("^\d+.sched01", x)]
-                      if jobids: 
-                        jobids.reverse() #latest on top
-                        df_all = pd.DataFrame()
-                        for j in jobids:
-                            cmd = 'qstat -xf -F json ' +  str(j) 
-                            jobdetails = run("ssh " + creds + ' ' + cmd, capture_output=True, shell=True) 
-                                             #check=True, timeout=15)
+                  idlist = jobs.stdout.decode()
+                  print(idlist)
 
-                            df = pd.read_json(jobdetails.stdout.decode())
+
+                  st.info("Found " + 'len(jobs)' + "completed jobs")
+                  #except:
+                  #    print("SSH qstat error ")
+                  #    return 
+
+                  lines = [x.decode() for x in jobs.stdout.splitlines() ]
+                  print("DEBUG: lines ")
+                  #print(lines)
+
+                  jobids = [ x for x in lines if re.search("^\d+.sched01", x)]
+                  if jobids: 
+                    jobids.reverse() #latest on top
+                    df_all = pd.DataFrame()
+                    for j in jobids:
+
+                        print("DEBUG: jobids ")
+                        print(j)
+
+                        cmd = 'qstat -xf -F json ' +  str(j) 
+
+                        print("DEBUG: before jobdetails")
+                        print(cmd)
+
+                        if st.session_state.jobdetails:
+                            full_job = run("ssh " + creds + ' ' + cmd, capture_output=True, shell=True) 
+                                    
+                            print("DEBUG: after jobdetails")
+                            print(full_job.returncode)
+
+                            df = pd.read_json(full_job.stdout.decode())
+                            print("DEBUG: after read json")
 
                             ndf = pd.json_normalize(df.Jobs)
                             ndf.insert(0, 'Job ID', j)
                             df_all = pd.concat([df_all, ndf])
 
-                        try:
-                            df_all.set_index('Job ID', inplace=True)
-                        except:
-                            print("DEBUG: call qstat ssh EXCEPTION")
-                            pass
-                        
-                      st.dataframe(df_all)
+                    print("DEBUG: before index")
 
-                  except:
-                      st.error("SSH {} timed out for".format(creds))
-                      return                 
-                #else:
-                #   st.error("Invalid cluster user {} for Qstat".format(st.session_state.user))
-                   #return 
-                #if jobs.returncode > 0:
+                    try:
+                        df_all.set_index('Job ID', inplace=True)
+                    except:
+                        pass
+                    print("DEBUG: after indexind")
+                    
+                  print("DEBUG: before df")
+                  st.dataframe(df_all)
+                  print("DEBUG: after df")
+                  df_all 
+
+
+            #except:
+            #    st.error("SSH {} timed out for".format(creds))
+            #    return                 
+          #else:
+          #   st.error("Invalid cluster user {} for Qstat".format(st.session_state.user))
+              #return 
+          #if jobs.returncode > 0:

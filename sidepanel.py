@@ -1,14 +1,50 @@
 #sidepanel.py 
+import os.path
 import streamlit as st
+import time
+
 from common import DEFAULT_WALLTIME
+
+CLUSTERHOST='scp.chpc.ac.za'
 
 def show_sidepanel(st):
 
+    '''
+    def save_username(data):
+        if data is not None:
+            fp = open(USERFNAME, 'w')
+            fp.write(str(data))
+            fp.close()
+            st.info('Saved username ' + str(data))
+            print("DEBUG save username to file")
+        else:
+            print("DEBUG username None not saved")
+
+
+    def get_username():
+        if os.path.isfile(USERFNAME):
+            if os.path.getsize(USERFNAME)!=0:
+                fp = open(USERFNAME)
+                data = fp.read()
+                fp.close()
+                print("DEBUG username rawdata read from file " + USERFNAME + " " + str(data))
+                if data is not None:
+                    return data
+    '''
+
     with st.sidebar:
 
-        st.sidebar.header('PBS job settings')
+        def msg_off(place):
+                place.empty()
 
-        with st.expander('Detail job params'):
+        st.sidebar.header('PBS job settings')
+        
+        with st.expander('Username', expanded=True):            
+            warning_place = st.empty()
+            warning_place.warning("Required: set up ssh-keys to log in without password")
+            user = st.text_input('SSH cluster username', key='user', on_change=msg_off(warning_place))
+
+        with st.expander('Detail job parameters'):
         
             col1, col2 = st.columns([1, 2])
 
@@ -42,35 +78,7 @@ def show_sidepanel(st):
         with st.expander('SSH Connection'):
 
             use_ssh = st.checkbox('Use via SSH', key='use_ssh', value=True)            
-            #keys_or_pass = st.radio('Use SSH key or password?', ('Key', 'Password'))
-            user = st.text_input('user', value='user', key='user' )
-                                   #placeholder='user',
-            #password = st.text_input('password', placeholder='pass123', )
-            server= st.text_input('SSH server', value='scp.chpc.ac.za', key='server')  #XXX 
-                                   #placeholder='lengau.chpc.ac.za',
-
-            #ssh_pubkey = st.text_input('SSH public key file', value='~/.ssh/id_rsa.pub ' )
-            #ssh_privkey = st.text_input('SSH private key file location', value='~/.ssh/id_rsa' )
-
-            #website = st.text_input('Aux Website', placeholder='https://users.chpc.ac.za', )
-            #web_username = st.text_input('Website login name', placeholder='username@gmail', )
-            #web_password = st.text_input('Website password', placeholder='webpass123', )
+            server= st.text_input('SSH server', value=CLUSTERHOST, key='server')  
 
             st.divider()
-
-            '''
-            if st.session_state.user == "user":
-
-                with st.form("user_form"):
-                    st.write("Real username needed")
-                    realuser = st.text_input("Cluster ssh username", key="realuser",)  
-                    submitted = st.form_submit_button("Add real username")
-                    if submitted:
-                        st.session_state.user = realuser
-                        
-                st.write("Changed to " + realuser)
-                '''
-
-
-
 

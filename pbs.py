@@ -3,6 +3,8 @@ import streamlit as st
 from subprocess import run
 import os,socket
 
+saved_jobids=[]
+
 try:
     import drmaa
     DRMAA_avail = True
@@ -280,7 +282,7 @@ def show_pbs(st, pbs_tab):
                                             if exitcode.returncode < 0:
                                                 st.error("Could not copy file to server, timeout " + filename + exitcode.returncode)
                                             #os.remove(filename)
-                                            return
+                                                return
                                         
                                             st.info('File ' + filename + ' copied to cluster ' + \
                                                 st.session_state.workdir + '/' + st.session_state.dl_filename)

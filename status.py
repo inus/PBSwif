@@ -1,32 +1,30 @@
 # status.py
-import streamlit as st
-
-import re,json
-from subprocess import run
+import json
+import os
 import pandas as pd
+import re
+import streamlit as st
+from subprocess import run
 from pbs import DRMAA_avail
 
-def show_status(st, status_tab):
+global saved_jobids
+saved_jobids= []
 
-  joblist = []
-  df_all = pd.DataFrame()
+def show_status(st, status_tab):        
 
-  with status_tab:
+    df_all = pd.DataFrame()
 
-        jobdetails = st.checkbox('Retrieve full job history', key='jobdetails')
-
-        if DRMAA_avail:
+    def get_drmaa_jobstats():                
             try:
-              jobs = run("qstat -xu $USER | awk '{ print $1 }' | tail -12 ",capture_output=True,shell=True)
+                jobs = run("qstat -xu $USER | awk '{ print $1 }' | tail -12 ",capture_output=True,shell=True)
             except:
-               st.error('Cannot run qstat command on local host')
-               return
+                st.error('Cannot run qstat command on local host')
+                return
 
             jobids = [x for x in jobs.stdout.splitlines()]
             jobids.reverse() 
 
             for jobid  in jobids:
-
                 jobdetail  = run("qstat -xf -F json " + jobid.decode(), capture_output=True, shell=True)
                 df = pd.read_json(jobdetail.stdout.decode() )
                 ndf = pd.json_normalize(df.Jobs)
@@ -35,79 +33,78 @@ def show_status(st, status_tab):
                 df_all = pd.concat([df_all, ndf])
 
             try:
-              df_all.set_index('Job ID', inplace=True)
+                df_all.set_index('Job ID', inplace=True)
             except:
-              pass
+                pass
 
-        else:  #Use SSH
-           if st.session_state.use_ssh and (st.session_state.user != "user"):
-                creds = st.session_state.user + '@' + st.session_state.server 
-                cmd = 'qstat -xu ' + st.session_state.user + " | awk '{ print $1 }' " 
-                if st.session_state.user != "user":
-                  print("DEBUG: before call qstat ssh")
-                  #try:
-                  jobs = run("ssh " + creds + ' ' + cmd, capture_output=True, shell=True) # check=True,timeout=15)                      
-                  print("DEBUG: after call ssh x" + cmd )
-#                  print(jobs)
+    '''
+    def get_jobstats(jobid):
+        
+        filename='jobstats.json'
+        if os.path.isfile(filename):          
+            if os.path.getsize(filename) != 0:
+                fp = open(filename)
+                saved_jobstats = pd.read_json(filename)
+                fp.close()
+                print("DEBUG jobstats from file " + str(len(saved_jobstats)))
+                return saved_jobstats
+          
+        else:
+            return get_ssh_jobdetails(jobid)
 
-                  idlist = jobs.stdout.decode()
-                  print(idlist)
+    def get_ssh_jobdetails(jobid):
 
+           #st.spinner("Completed")
 
-                  st.info("Found " + 'len(jobs)' + "completed jobs")
-                  #except:
-                  #    print("SSH qstat error ")
-                  #    return 
+        #print ("DEBUG : getting ssh job details: ") # + str(j))
+        creds = st.session_state.user + '@' + st.session_state.server 
+###        cmd = 'qstat -x -f -F json -w ' +  str(jobid) 
+        cmd = 'qstat -x -f -F json -w  -u $USER ' +  str(jobid) 
+        qstat = run("ssh " + creds + ' ' + cmd, capture_output=True, shell=True) 
+        #print("DEBUG: after jobdetails: length of record ")# + \
+        if qstat:
+            lines = [x.decode() for x in qstat.stdout.splitlines()]
+            data = [ l.split() for l in lines]                
 
-                  lines = [x.decode() for x in jobs.stdout.splitlines() ]
-                  print("DEBUG: lines ")
-                  #print(lines)
+        #print ("DEBUG : qstat stdout ", data)
 
-                  jobids = [ x for x in lines if re.search("^\d+.sched01", x)]
-                  if jobids: 
-                    jobids.reverse() #latest on top
-                    df_all = pd.DataFrame()
-                    for j in jobids:
-
-                        print("DEBUG: jobids ")
-                        print(j)
-
-                        cmd = 'qstat -xf -F json ' +  str(j) 
-
-                        print("DEBUG: before jobdetails")
-                        print(cmd)
-
-                        if st.session_state.jobdetails:
-                            full_job = run("ssh " + creds + ' ' + cmd, capture_output=True, shell=True) 
-                                    
-                            print("DEBUG: after jobdetails")
-                            print(full_job.returncode)
-
-                            df = pd.read_json(full_job.stdout.decode())
-                            print("DEBUG: after read json")
-
-                            ndf = pd.json_normalize(df.Jobs)
-                            ndf.insert(0, 'Job ID', j)
-                            df_all = pd.concat([df_all, ndf])
-
-                    print("DEBUG: before index")
-
-                    try:
-                        df_all.set_index('Job ID', inplace=True)
-                    except:
-                        pass
-                    print("DEBUG: after indexind")
-                    
-                  print("DEBUG: before df")
-                  st.dataframe(df_all)
-                  print("DEBUG: after df")
-                  df_all 
+        jsondata = json.loads(qstat.stdout.decode())
+        jdf = pd.DataFrame(jsondata)
+#        df = pd.DataFrame(jdf.Jobs)
+        ndf = pd.json_normalize(jdf.Jobs )
+        ndf.insert(0, 'Job ID', jobid)
+        
+        #print("DEBUG: jsondata ", ndf) 
+        return pd.DataFrame(ndf)
 
 
-            #except:
-            #    st.error("SSH {} timed out for".format(creds))
-            #    return                 
-          #else:
-          #   st.error("Invalid cluster user {} for Qstat".format(st.session_state.user))
-              #return 
-          #if jobs.returncode > 0:
+    def save_jobstats_to_file(data, filename):
+        with open(filename, 'w') as f:
+            json.dump(data, f)
+            f.close()
+            print("DEBUG: after write new jobstats json")
+    '''
+                
+
+    def get_jobstats():
+        with st.spinner("Getting job data..."):
+              creds = st.session_state.user + '@' + st.session_state.server 
+              cmd = 'qstat -x -F json -f -w -u' + st.session_state.user # <<< admin mode needs other usernames
+              qstat = run("ssh " + creds + ' ' + cmd, capture_output=True, shell=True)      
+              jdf = pd.read_json(qstat.stdout.decode())
+              ndf = pd.json_normalize(jdf.Jobs)           # <<<<<<<<<<<<
+              #ndf.insert(0, 'Job ID', 123)
+              df = pd.DataFrame(ndf)        
+        st.spinner("Completed")
+        return df
+
+    
+    with status_tab:
+        if DRMAA_avail:
+            get_drmaa_jobstats()
+        else:
+            print("DEbug ",st.session_state.user )
+            if st.session_state.user != "":
+                job_df = get_jobstats()
+                st.dataframe(job_df)
+

@@ -43,8 +43,9 @@ def show_test(st, test_tab):
                          st.error("SSH timeout")
                          return
                     
-                    #lines = [x.decode() for x in output.stdout.splitlines() ]
-                    st.write(output.stdout)                     
+                    lines = [x.decode() for x in output.stdout.splitlines() ]
+                    for l in lines:
+                         st.text(l)
 
 
 

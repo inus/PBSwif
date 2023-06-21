@@ -55,10 +55,11 @@ def show_sidepanel(st):
                                             key='Queue')
             st.divider()
 
-        with st.expander('SSH Connection'):
+        if not DRMAA_avail:
+                with st.expander('SSH Connection'):
 
-            use_ssh = st.checkbox('Use via SSH', key='use_ssh', value=True)            
-            server= st.text_input('SSH server', value=CLUSTERHOST, key='server')  
+                    use_ssh = st.checkbox('Use via SSH', key='use_ssh', value=True)            
+                    server= st.text_input('SSH server', value=CLUSTERHOST, key='server')  
 
-            st.divider()
+                    st.divider()
 

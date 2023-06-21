@@ -27,15 +27,15 @@ def show_status(st, status_tab):
                     df = pd.read_json(jobs.stdout.decode() )
             except:
                     df = json.loads(jobs.stdout.decode())
-                    ndf = pd.json_normalize(df)
+                    df = pd.json_normalize(df)
                     st.info("No recent queued or completed jobs found")
-                    return ndf
+                    return df
 
-            df = pd.read_json(jobs.stdout.decode() )
             df = json.loads(jobs.stdout.decode())
-            ndf = pd.json_normalize(df.Jobs)
+            df = pd.DataFrame(df) 
+            df = pd.json_normalize(df.Jobs)
 
-            return pd.DataFrame(ndf)
+            return pd.DataFrame(df)
 
     def get_ssh_jobdetails(jobid):
 
@@ -46,9 +46,9 @@ def show_status(st, status_tab):
         except TimeoutError:
              st.error("Check username, ssh " + creds + " failed")
              return pd.DataFrame
-        jsondata = json.loads(qstat.stdout.decode())
-        jdf = pd.DataFrame(jsondata)
-        ndf = pd.json_normalize(jdf.Jobs )
+        df = json.loads(qstat.stdout.decode())
+        df = pd.DataFrame(df)
+        df = pd.json_normalize(df.Jobs )
         ndf.insert(0, 'Job ID', jobid)
         return pd.DataFrame(ndf)
 
@@ -78,7 +78,5 @@ def show_status(st, status_tab):
             if st.session_state.user != "":
                 df = get_jobstats()
                 st.dataframe(df)
-           # else:
-           #     st.error("No recent jobs found")
 
 

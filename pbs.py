@@ -1,4 +1,5 @@
 #pbs.py
+
 import streamlit as st
 from subprocess import run
 import os,socket
@@ -11,7 +12,6 @@ try:
 except:
     DRMAA_avail = False
 
-
 PBS_HOSTS = ['login1', 'login2', 'globus.chpc.ac.za']
 host = socket.gethostname()
 
@@ -22,14 +22,10 @@ else:
 
 import datetime
 from common import check_select, DEFAULT_WALLTIME 
-#ssh_clicked=False
 
 def show_pbs(st, pbs_tab):
     
     pbs_text=''
-
-#    def save_ssh_clicked():   
-#        ssh_clicked=True
 
     def set_dl_filename():
         return st.session_state.dl_filename
@@ -45,12 +41,13 @@ def show_pbs(st, pbs_tab):
                 leftcol1, rightcol1 = st.columns([1,1])
 
                 with leftcol1:
-                    if st.session_state.user != "user":                 
-                        ssh_button = st.button("Submit via ssh as " + st.session_state.user,
-                                            key='ssh_button') #, on_click=save_ssh_clicked())
-                    else:
-                        st.error('Invalid SSH username \"' + st.session_state.user + '\"')
-                        ssh_button = st.button('Please give a valid SSH username, not \"' \
+                    if not DRMAA_avail:
+                            if st.session_state.user != "user":                 
+                                ssh_button = st.button("Submit via ssh as " + st.session_state.user,
+                                            key='ssh_button')
+                            else:
+                                st.error('Invalid SSH username \"' + st.session_state.user + '\"')
+                                ssh_button = st.button('Please give a valid SSH username, not \"' \
                                            + st.session_state.user + '\"',
                                             key='ssh_button', disabled=True)
 
@@ -210,7 +207,7 @@ def show_pbs(st, pbs_tab):
                                 except:
                                     st.error( 'PBS job not submitted. Check if your RP programme code is valid')
                         else: #ssh 
-                            if st.session_state.use_ssh: #and st.session_state.ssh_button:
+                            if st.session_state.use_ssh: 
 
                                 if st.session_state.user == "user":
                                     st.error("Invalid cluster username \"{}\"".format(st.session_state.user))
@@ -271,51 +268,32 @@ def show_pbs(st, pbs_tab):
                                       st.error("Please give a valid username instead of " + st.session_state.user)
                                     else:
                                       
-                                      #with st.spinner("Submitting job"):
-                                        #try:
                                             CMD = 'scp ' + filename + ' ' + creds + ':' + st.session_state.workdir                                        
-                                            print("DEBUG before ssh scp copy")
                                             exitcode = run(CMD,capture_output=True, shell=True) #, timeout=15.0, check=True)
-                                            print("DEBUG after ssh scp copy " + exitcode.returncode)
 
-                                        #except:# subprocess.TimeoutExpired as e:
                                             if exitcode.returncode < 0:
                                                 st.error("Could not copy file to server, timeout " + filename + exitcode.returncode)
-                                            #os.remove(filename)
                                                 return
                                         
                                             st.info('File ' + filename + ' copied to cluster ' + \
                                                 st.session_state.workdir + '/' + st.session_state.dl_filename)
-#                                        #try:
-                                            print("DEBUG before ssh qsub run")
 
                                             qsub_out = run("ssh " + creds  + \
                                                         ' qsub ' + st.session_state.workdir \
                                                         + '/' + st.session_state.dl_filename, 
                                                         capture_output=True, shell=True) #, timeout=15.0, check=True)                                            
-                                        #except:# subprocess.TimeoutExpired as e:
                                             if qsub_out.returncode < 0:
                                                 st.error("Timeout, Could not run qsub " + qsub_out.returncode)
                             
                                             if qsub_out.returncode == 0:
                                                 jobid = qsub_out.stdout.decode()
-                                                print("DEBUG after qsub " + jobid)
 
-                                            #st.info("Job ID: " + jobid )
 
                                             os.remove(filename)
-                                            print("DEBUG delete local pbs file")
                                     
-                                        #st.success("Job ID: " + jobid )
-
-                ##with botrightcol:
 
                 st.download_button('Download PBS script to local disk' + st.session_state.dl_filename, 
                                    pbs_text,
                                    file_name=st.session_state.dl_filename, 
                                    use_container_width=True )
-                    
 
-
-                                
-                

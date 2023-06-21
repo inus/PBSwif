@@ -14,4 +14,38 @@ Live queue stats for serial, normal, bigmem etc
 Search/show modules
 
 Download .PBS file 
+=========
+
+To do 20 June
+
+get live queue limits from cluster instead of rules
+
+
+Upload .pbs files, verify them
+
+try the drmaa2 calls
+
+qdel
+
+histograms
+
+disk use?
+
+ssh key mgmt
+
+data uploads
+
+graphs
+
+save job records to local disk + graph
+
+view error/output files in browser
+
+link to users.chpc
+link to wiki
+
+write test suit
+
+look at admin mode options
+admin monitoring via drmaa2
 

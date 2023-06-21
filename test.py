@@ -4,6 +4,7 @@ import streamlit as st
 import re,json
 from subprocess import run
 import pandas as pd
+from pbs import DRMAA_avail 
 
 def show_test(st, test_tab):
 
@@ -11,10 +12,10 @@ def show_test(st, test_tab):
 
     with st.form(key='test_form'):
 
-
+        cmd = st.text_input('command to execute', key='testcmd', value='w')
+        if not DRMAA_avail:
             if st.session_state.use_ssh:
                 creds = st.session_state.user + '@' + st.session_state.server 
-                cmd = st.text_input('command to execute', key='testcmd', value='w')
         
                 if st.form_submit_button('Test SSH', use_container_width=True, type="primary"):
 
@@ -31,4 +32,13 @@ def show_test(st, test_tab):
 
             else:
                     st.warning("SSH is disabled")
+
+        else:
+                if st.form_submit_button('Test SSH', use_container_width=True, type="primary"):
+                    output = run(st.session_state.testcmd, capture_output=True, shell=True) 
+                    lines = [x.decode() for x in output.stdout.splitlines() ]
+                    st.table(lines)                     
+                    #, timeout=5.0, check=True)
+
+
 

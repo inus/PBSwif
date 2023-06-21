@@ -2,6 +2,7 @@
 import os.path
 import streamlit as st
 import time
+from pbs import DRMAA_avail 
 
 from common import DEFAULT_WALLTIME
 
@@ -9,28 +10,6 @@ CLUSTERHOST='scp.chpc.ac.za'
 
 def show_sidepanel(st):
 
-    '''
-    def save_username(data):
-        if data is not None:
-            fp = open(USERFNAME, 'w')
-            fp.write(str(data))
-            fp.close()
-            st.info('Saved username ' + str(data))
-            print("DEBUG save username to file")
-        else:
-            print("DEBUG username None not saved")
-
-
-    def get_username():
-        if os.path.isfile(USERFNAME):
-            if os.path.getsize(USERFNAME)!=0:
-                fp = open(USERFNAME)
-                data = fp.read()
-                fp.close()
-                print("DEBUG username rawdata read from file " + USERFNAME + " " + str(data))
-                if data is not None:
-                    return data
-    '''
 
     with st.sidebar:
 
@@ -38,11 +17,12 @@ def show_sidepanel(st):
                 place.empty()
 
         st.sidebar.header('PBS job settings')
-        
-        with st.expander('Username', expanded=True):            
-            warning_place = st.empty()
-            warning_place.warning("Required: set up ssh-keys to log in without password")
-            user = st.text_input('SSH cluster username', key='user', on_change=msg_off(warning_place))
+
+        if not DRMAA_avail:
+                with st.expander('Username', expanded=True):            
+                    warning_place = st.empty()
+                    warning_place.warning("Required: set up ssh-keys to log in without password")
+                    user = st.text_input('SSH cluster username', key='user', on_change=msg_off(warning_place))
 
         with st.expander('Detail job parameters'):
         

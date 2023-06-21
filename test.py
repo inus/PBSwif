@@ -6,6 +6,8 @@ from subprocess import run
 import pandas as pd
 from pbs import DRMAA_avail 
 
+SSH_TIMEOUT=15
+
 def show_test(st, test_tab):
 
   with test_tab:
@@ -16,29 +18,33 @@ def show_test(st, test_tab):
         if not DRMAA_avail:
             if st.session_state.use_ssh:
                 creds = st.session_state.user + '@' + st.session_state.server 
-        
-                if st.form_submit_button('Test SSH', use_container_width=True, type="primary"):
+                        
+                if st.form_submit_button('Test SSH', type="primary",
+                                             disabled=( st.session_state.user == "" ) ):
+                        try:
+                            output = run("ssh " + creds + ' ' + st.session_state.testcmd,
+                                    capture_output=True, shell=True, timeout=SSH_TIMEOUT, check=True)
+                        except TimeoutError as t:
+                            st.error("SSH {} failed ".format(creds))
+                            return 
 
-                    #try:
-                    output = run("ssh " + creds + ' ' + st.session_state.testcmd, capture_output=True, shell=True) 
-                    #, timeout=5.0, check=True)
-                    #except subprocess.TimeoutExpired:
-                    #    st.error("SSH {} failed ".format(creds))
-                    #    return 
-
-                    lines = [x.decode() for x in output.stdout.splitlines() ]
-
-                    st.table(lines)                     
+                        lines = [x.decode() for x in output.stdout.splitlines()]
+                        for l in lines:
+                            st.text(l)
 
             else:
                     st.warning("SSH is disabled")
 
         else:
-                if st.form_submit_button('Test SSH', use_container_width=True, type="primary"):
-                    output = run(st.session_state.testcmd, capture_output=True, shell=True) 
-                    lines = [x.decode() for x in output.stdout.splitlines() ]
-                    st.table(lines)                     
-                    #, timeout=5.0, check=True)
+                if st.form_submit_button('Test SSH', type="primary"):
+                    try:
+                            output = run(st.session_state.testcmd, capture_output=True, shell=True) 
+                    except TimeoutError:
+                         st.error("SSH timeout")
+                         return
+                    
+                    #lines = [x.decode() for x in output.stdout.splitlines() ]
+                    st.write(output.stdout)                     
 
 
 

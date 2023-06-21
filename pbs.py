@@ -1,7 +1,7 @@
 #pbs.py
 
 import streamlit as st
-from subprocess import run
+from subprocess import run, TimeoutExpired
 import os,socket
 
 saved_jobids=[]
@@ -42,9 +42,12 @@ def show_pbs(st, pbs_tab):
 
                 with leftcol1:
                     if not DRMAA_avail:
-                            if st.session_state.user != "user":                 
-                                ssh_button = st.button("Submit via ssh as " + st.session_state.user,
-                                            key='ssh_button')
+                            if st.session_state.user != "":                 
+                                ssh_button = st.button("Submit via ssh as " + 
+                                                       st.session_state.user + '@' +
+                                                       st.session_state.server, 
+                                            key='ssh_button', disabled=(st.session_state.user == "") )
+                                st.warning("No ssh username")
                             else:
                                 st.error('Invalid SSH username \"' + st.session_state.user + '\"')
                                 ssh_button = st.button('Please give a valid SSH username, not \"' \

@@ -44,8 +44,15 @@ view error/output files in browser
 link to users.chpc
 link to wiki
 
-write test suit
+write test suite
 
 look at admin mode options
 admin monitoring via drmaa2
 
+complete all "-l select" options eg "-l nodes"
+
+manage scripts dir / check and validate
+
+pbs flow control (eg afterok etc
+
+theme and style)

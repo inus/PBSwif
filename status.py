@@ -16,16 +16,21 @@ def show_status(st, status_tab):
 
     def get_drmaa_jobstats():                
 
-            dfd = pd.DataFrame()
             CMD = "qstat -f -w -F json -x -u $USER "
 
+            jobs = run(CMD,capture_output=True,shell=True)
+
             try:
-                jobs = run(CMD,capture_output=True,shell=True)
+                    df = pd.read_json(jobs.stdout.decode() )
+    
             except:
-                st.error('Cannot run qstat command on local host')
-                return
+                    df = json.loads(jobs.stdout.decode())
+                    ndf = pd.json_normalize(df)
+                    st.info("No recent queued or completed jobs found")
+                    return ndf
 
             df = pd.read_json(jobs.stdout.decode() )
+            df = json.loads(jobs.stdout.decode())
             ndf = pd.json_normalize(df.Jobs)
 
             return pd.DataFrame(ndf)
@@ -57,9 +62,13 @@ def show_status(st, status_tab):
     
     with status_tab:
         if DRMAA_avail:
-            st.dataframe(get_drmaa_jobstats())
+            job_df = get_drmaa_jobstats()
+            st.dataframe(job_df)
         else:
             if st.session_state.user != "":
                 job_df = get_jobstats()
                 st.dataframe(job_df)
+            else:
+                st.error("No recent jobs found")
+
 

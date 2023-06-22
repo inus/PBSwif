@@ -8,7 +8,7 @@ from common import DEFAULT_WALLTIME
 
 CLUSTERHOST='scp.chpc.ac.za'
 
-def show_sidepanel(st):
+def show_sidebar(st):
 
 
     with st.sidebar:

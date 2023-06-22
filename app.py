@@ -4,17 +4,17 @@ import streamlit as st
 import socket
 import sqlite3
 
-from sidepanel import show_sidepanel
+from sidebar import show_sidebar
 
 from pbs import show_pbs
-from status import show_status
-from common import show_info
-from test import show_test
-from qstat import show_qstat
+from jobs import show_jobs
+from info import show_info
+from shell import show_shell
+from qstat import show_queue
 
 st.set_page_config(    
-    page_title="PBS-Pro Job Script Helper",
-    page_icon=":leopard:",
+    page_title="PBS Job Script Helper",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -22,17 +22,17 @@ st.set_page_config(
 
 st.header('PBS web interface')
 
-pbs, status, test, qstat = st.tabs(["PBS Script", "Job Status", "Shell", "Qstat"])
+script, jobs, shell, queue = st.tabs(["Script", "Jobs", "Shell", "Queue"])
 
-show_sidepanel(st)
+show_sidebar(st)
 
-show_pbs(st,pbs)
+show_pbs(st,script)
 
-show_status(st,status)
+show_jobs(st,jobs)
 
-show_test(st, test)
+show_shell(st, shell)
 
-show_qstat(st, qstat)
+show_queue(st, queue)
 
 show_info(st)
 

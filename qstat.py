@@ -1,14 +1,14 @@
 #qstat.py 
 import streamlit as st
-import re,json
+import json
 from subprocess import run, TimeoutExpired
 import pandas as pd
 from pbs import DRMAA_avail, CLUSTER_AVAIL, host
 
 
-def show_qstat(st, qstat_tab):
+def show_queue(st, queue):
 
-  with qstat_tab:
+  with queue:
 
     with st.form(key='qstat_form'):
 

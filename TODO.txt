@@ -51,8 +51,19 @@ admin monitoring via drmaa2
 
 complete all "-l select" options eg "-l nodes"
 
-manage scripts dir / check and validate
+manage scripts dir?
+
+upload scripts, from cluster check and validate
 
 pbs flow control (eg afterok etc
 
 theme and style)
+
+Pull in logs eg GPU data and plot via pandas
+
+api call to helpdesk for admin 
+
+dashboard
+
+
+

@@ -1,25 +1,21 @@
 # status.py
 import json
-import os
 import pandas as pd
-import re
 import streamlit as st
 from subprocess import run, TimeoutExpired
+
 from pbs import DRMAA_avail
 
-global saved_jobids
-saved_jobids= []
+SSH_TIMEOUT=15
 
+CMD = " qstat -f -w -F json -x -u $USER "
+#This  ^ space is essential
 
-def show_status(st, status_tab):        
-
-    df_all = pd.DataFrame()
+def show_jobs(st, status_tab):        
 
     def get_drmaa_jobstats():                
-
-            CMD = "qstat -f -w -F json -x -u $USER "
             try:
-                jobs = run(CMD,capture_output=True,shell=True)
+                jobs = run(CMD, capture_output=True, shell=True)
             except TimeoutError:
                  st.error("Qstat failed")
                  return pd.DataFrame()            
@@ -37,37 +33,36 @@ def show_status(st, status_tab):
 
             return pd.DataFrame(df)
 
-    def get_ssh_jobdetails(jobid):
-
-        creds = st.session_state.user + '@' + st.session_state.server 
-        CMD = 'qstat -x -f -F json -w  -u $USER ' +  str(jobid)
-        try: 
-            qstat = run("ssh " + creds + ' ' + CMD, capture_output=True, shell=True, timeout=5, check=True) 
-        except TimeoutError:
-             st.error("Check username, ssh " + creds + " failed")
-             return pd.DataFrame
-        df = json.loads(qstat.stdout.decode())
-        df = pd.DataFrame(df)
-        df = pd.json_normalize(df.Jobs )
-        ndf.insert(0, 'Job ID', jobid)
-        return pd.DataFrame(ndf)
-
-
 
     def get_jobstats():
         with st.spinner("Getting job data..."):
               creds = st.session_state.user + '@' + st.session_state.server 
-              CMD = 'qstat -x -F json -f -w -u ' + st.session_state.user 
               try:
-                  qstat = run("ssh " + creds + ' ' + CMD, capture_output=True, shell=True, timeout=8, check=True)      
+                  qstat = run("ssh " + creds + CMD,
+                               capture_output=True, shell=True,
+                               timeout=SSH_TIMEOUT, check=True)      
               except TimeoutExpired:
                   st.error("Check username, ssh " + creds + " failed")
                   return pd.DataFrame()
-              jdf = pd.read_json(qstat.stdout.decode())
-              ndf = pd.json_normalize(jdf.Jobs)
-              df = pd.DataFrame(ndf)
+                
+              try:
+                      df = pd.read_json(qstat.stdout.decode() )
+              except:
+                      df = json.loads(qstat.stdout.decode())
+                      df = pd.json_normalize(df)
+                      server = ''.join([x for x in df.pbs_server])
+                      st.info("No queued or recently completed jobs on PBS " + 
+                               str(server))
+                      #import pdb; pdb.set_trace()
+                      return df
+
+              #df = json.loads(qstat.stdout.decode())
+              df = pd.read_json(qstat.stdout.decode()) 
+              df = pd.DataFrame(df) #['Jobs'])
+              df = pd.json_normalize(df)
+              
         st.spinner("Completed")
-        return df
+        return pd.DataFrame(df)
 
     
     with status_tab:
@@ -78,5 +73,7 @@ def show_status(st, status_tab):
             if st.session_state.user != "":
                 df = get_jobstats()
                 st.dataframe(df)
+            else:
+                 st.warning("Empty ssh username")
 
 

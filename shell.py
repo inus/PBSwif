@@ -8,11 +8,11 @@ from pbs import DRMAA_avail
 
 SSH_TIMEOUT=15
 
-def show_test(st, test_tab):
+def show_shell(st, shell):
 
-  with test_tab:
+  with shell:
 
-    with st.form(key='test_form'):
+    with st.form(key='shell_form'):
 
         cmd = st.text_input('command to execute', key='testcmd', value='w')
         if not DRMAA_avail:

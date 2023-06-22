@@ -43,3 +43,4 @@
   open a ssh tunnel, eg:
    `ssh -N -L 10000:localhost:8501 scp.chpc.ac.za`
 
+![](fullscreen.png)

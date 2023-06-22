@@ -33,19 +33,21 @@ def show_shell(st, shell):
                             st.text(l)
 
             else:
-                    st.warning("SSH is disabled")
+                    st.warning("SSH is not available")
 
         else:
                 if st.form_submit_button('Test SSH', type="primary"):
-                    try:
-                            output = run(st.session_state.testcmd, capture_output=True, shell=True) 
-                    except TimeoutError:
-                         st.error("SSH timeout")
-                         return
+                        try:
+                            with st.spinner():
+                                output = run(st.session_state.testcmd, capture_output=True, shell=True) 
+                            st.spinner("Done")
+                        except TimeoutError:
+                            st.error("SSH timeout")
+                            return
+                        
+                        lines = [x.decode() for x in output.stdout.splitlines() ]
+                        for l in lines:
+                            st.text(l)
                     
-                    lines = [x.decode() for x in output.stdout.splitlines() ]
-                    for l in lines:
-                         st.text(l)
-
 
 

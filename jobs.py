@@ -8,7 +8,8 @@ from pbs import DRMAA_avail
 
 SSH_TIMEOUT=15
 
-CMD = " qstat -f -w -F json -x -u $USER "
+#CMD = ' qstat -f -w -F json -x -u $USER '
+CMD = ' qstat -f -w -F json -x -u '
 #This  ^ space is essential
 
 def show_jobs(st, status_tab):        
@@ -30,15 +31,14 @@ def show_jobs(st, status_tab):
             df = json.loads(jobs.stdout.decode())
             df = pd.DataFrame(df) 
             df = pd.json_normalize(df.Jobs)
-
-            return pd.DataFrame(df)
+            return df
 
 
     def get_jobstats():
-        with st.spinner("Getting job data..."):
+        with st.spinner("Getting job data for " + st.session_state.user ):
               creds = st.session_state.user + '@' + st.session_state.server 
               try:
-                  qstat = run("ssh " + creds + CMD,
+                  qstat = run("ssh " + creds + CMD + st.session_state.user,
                                capture_output=True, shell=True,
                                timeout=SSH_TIMEOUT, check=True)      
               except TimeoutExpired:
@@ -53,16 +53,14 @@ def show_jobs(st, status_tab):
                       server = ''.join([x for x in df.pbs_server])
                       st.info("No queued or recently completed jobs on PBS " + 
                                str(server))
-                      #import pdb; pdb.set_trace()
                       return df
 
-              #df = json.loads(qstat.stdout.decode())
               df = pd.read_json(qstat.stdout.decode()) 
-              df = pd.DataFrame(df) #['Jobs'])
-              df = pd.json_normalize(df)
+              df = pd.DataFrame(df) 
+              df = pd.json_normalize(df.Jobs)
               
         st.spinner("Completed")
-        return pd.DataFrame(df)
+        return df 
 
     
     with status_tab:

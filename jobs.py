@@ -15,6 +15,7 @@ CMD = ' qstat -f -w -F json -x -u '
 def show_jobs(st, status_tab):        
 
     def get_drmaa_jobstats():                
+            CMD = "qstat -f -w -F json -x -u $USER "
             try:
                 jobs = run(CMD, capture_output=True, shell=True)
             except TimeoutError:

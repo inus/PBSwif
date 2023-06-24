@@ -47,8 +47,8 @@ def show_pbs(st, pbs_tab):
                                                        st.session_state.user + '@' +
                                                        st.session_state.server, 
                                             key='ssh_button', disabled=(st.session_state.user == "") )
-                                st.warning("No ssh username")
                             else:
+                                st.warning("No ssh username")
                                 st.error('Invalid SSH username \"' + st.session_state.user + '\"')
                                 ssh_button = st.button('Please give a valid SSH username, not \"' \
                                            + st.session_state.user + '\"',

@@ -2,6 +2,7 @@
 import os.path
 import streamlit as st
 import time
+import sys
 from pbs import DRMAA_avail 
 
 from common import DEFAULT_WALLTIME
@@ -21,8 +22,12 @@ def show_sidebar(st):
         if not DRMAA_avail:
                 with st.expander('Username', expanded=True):            
                     warning_place = st.empty()
-                    warning_place.warning("Required: set up ssh-keys to log in without password")
-                    user = st.text_input('SSH cluster username', key='user', on_change=msg_off(warning_place))
+                    if len(sys.argv) != 2:
+                        user = st.text_input('SSH cluster username', key='user', on_change=msg_off(warning_place))
+                        warning_place.warning("Set up ssh keys, test without password")
+                    else:
+                        user = st.text_input('SSH cluster username', key='user', value=str((sys.argv[1])))
+                         
 
         with st.expander('Detail job parameters'):
         

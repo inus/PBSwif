@@ -3,14 +3,18 @@ import os.path
 import streamlit as st
 import time
 import sys
-from pbs import DRMAA_avail 
 
 from common import DEFAULT_WALLTIME
+from pbs import DRMAA_avail
 
 CLUSTERHOST='scp.chpc.ac.za'
 
-def show_sidebar(st):
+reread_jobs=False
+def refresh_jobs():
+     reread_jobs=True
+     
 
+def show_sidebar(st):
 
     with st.sidebar:
 
@@ -27,6 +31,15 @@ def show_sidebar(st):
                         warning_place.warning("Set up ssh keys, test without password")
                     else:
                         user = st.text_input('SSH cluster username', key='user', value=str((sys.argv[1])))
+                    cache_jobs = st.checkbox('Cache job data', key='cache_jobs',value=False)
+
+        with st.expander('Admin options'):
+                admin_mode = st.checkbox('Administrator', key='admin',value=False, help='Enable administrator mode')
+                target_user = st.text_input('Other username', key='target_user', 
+                                            help="Other username\'s jobs if in admin mode",
+                                            on_change=refresh_jobs)
+
+
                          
 
         with st.expander('Detail job parameters'):

@@ -66,4 +66,24 @@ api call to helpdesk for admin
 dashboard
 
 
+20230625 
+--
+Add commands on shell:
+
+id
+finger
+-
+Pull from users.chpc.ac.za (or cluster LDAP)
+- email address etc
+
+--
+ssh key upload/run ssh-keygen etc
+
+view output/error file via web
+
+link to user tickets?
+
+--
+
+
 

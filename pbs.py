@@ -4,7 +4,9 @@ import streamlit as st
 from subprocess import run, TimeoutExpired
 import os,socket
 
-saved_jobids=[]
+import inet
+
+#saved_jobids=[]
 
 try:
     import drmaa
@@ -16,9 +18,9 @@ PBS_HOSTS = ['login1', 'login2', 'globus.chpc.ac.za']
 host = socket.gethostname()
 
 if host in PBS_HOSTS:
-    CLUSTER_AVAIL=True
+    PBS_HOST=True
 else:
-    CLUSTER_AVAIL=False
+    PBS_HOST=False
 
 import datetime
 from common import check_select, DEFAULT_WALLTIME 
@@ -36,6 +38,9 @@ def show_pbs(st, pbs_tab):
         if not DRMAA_avail and not st.session_state.use_ssh:
             st.warning('PBS Job submission needs to run on a login node or SSH, neither available')
 
+        if not inet.up():
+            st.warning("No network connection")            
+
         with st.expander('PBS Job Parameters'):
 
                 leftcol1, rightcol1 = st.columns([1,1])
@@ -46,7 +51,8 @@ def show_pbs(st, pbs_tab):
                                 ssh_button = st.button("Submit via ssh as " + 
                                                        st.session_state.user + '@' +
                                                        st.session_state.server, 
-                                            key='ssh_button', disabled=(st.session_state.user == "") )
+                                            key='ssh_button', 
+                                            disabled=(st.session_state.user == "" or not inet.up()) )
                             else:
                                 st.warning("No ssh username")
                                 st.error('Invalid SSH username \"' + st.session_state.user + '\"')
@@ -102,7 +108,7 @@ def show_pbs(st, pbs_tab):
                                             label_visibility='collapsed', 
                                             value=st.session_state.jobname + '.pbs')
 
-                        if st.form_submit_button('Preview PBS script', use_container_width=True, type="primary"):
+                        if st.form_submit_button('Preview PBS script'):
                             if not st.session_state.programme:
                                 st.error("The allocated CHPC Research Programme code, e.g. 'ABCD1234' is required to submit jobs")
                             if not st.session_state.email:
@@ -186,7 +192,11 @@ def show_pbs(st, pbs_tab):
                             pbs_text += st.session_state.command + '\n' 
 
                         if DRMAA_avail:
-                            submission  = st.form_submit_button('Submit job script via DRMAA')
+                            if inet.up():
+                                submission  = st.form_submit_button('Submit job script via DRMAA')
+                            else:
+                                submission  = st.form_submit_button('Submit job script via DRMAA',
+                                                                    disabled=True)
                             if submission:
                                 pbs = drmaa.Session()
                                 try:

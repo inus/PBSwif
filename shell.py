@@ -2,7 +2,7 @@
 import streamlit as st
 
 import re,json
-from subprocess import run
+from subprocess import run, CalledProcessError, TimeoutExpired
 import pandas as pd
 
 import inet
@@ -12,24 +12,43 @@ SSH_TIMEOUT=15
 
 def show_shell(st, shell):
 
-  with shell:
+    def do_command(cmd):
+         if cmd=='w': return 'w'
+         if cmd=='id': return "id " + st.session_state.target_user
+         if cmd=='df': return 'df -h'
+         if cmd=='group': return 'getent group | grep ' + st.session_state.target_user 
+         if cmd=="CHPCpgms": return "grep "  + st.session_state.target_user + " /home/userdb/programme_info.csv" 
+         if cmd=="blocked": return  "grep "  + st.session_state.target_user + " /home/userdb/blockeduser"
+         if cmd=="allocations": return  "cat /home/userdb/projects_status.csv"
+
+
+
+    with shell:
         if inet.up():
+
+            cmd1 = st.selectbox('Command', ('w', 'id', 'df', 'group', 'CHPCpgms', 'blocked', 'allocations'),
+                                 key='testcmd' )
+
             with st.form(key='shell_form'):
-                cmd = st.text_input('command to execute', key='testcmd', value='w')
+
                 if not DRMAA_avail:
                     if st.session_state.use_ssh:
-                        creds = st.session_state.user + '@' + st.session_state.server                                 
-                        if st.form_submit_button('Test SSH', type="primary",
+                        creds = st.session_state.user + '@' + st.session_state.server        
+                        cmd = do_command(st.session_state.testcmd)
+
+                        if st.form_submit_button('SSH  $ ' + cmd, 
                                                     disabled=( st.session_state.user == "" ) ):
                                 try:
-                                    output = run("ssh " + creds + ' ' + st.session_state.testcmd,
-                                            capture_output=True, shell=True, timeout=SSH_TIMEOUT, check=True)
+                                    try:
+                                        output = run("ssh " + creds + ' ' +  cmd, capture_output=True, 
+                                                     shell=True, timeout=SSH_TIMEOUT, check=True)                    
+                                    except CalledProcessError as c:
+                                        st.error('Error in SSH command:' + str(c))
+                                        return
                                 except TimeoutError as t:
                                     st.error("SSH {} failed ".format(creds))
-                                    return 
-                                lines = [x.decode() for x in output.stdout.splitlines()]
-                                for l in lines:
-                                    st.text(l)
+                                    return                                 
+                                st.text(output.stdout.decode())
                     else:
                             st.warning("SSH is not available")
                 else:

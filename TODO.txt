@@ -61,7 +61,7 @@ theme and style)
 
 Pull in logs eg GPU data and plot via pandas
 
-api call to helpdesk for admin 
+api call to helpdesk for admin ?
 
 dashboard
 
@@ -86,4 +86,7 @@ link to user tickets?
 --
 
 
+Clean up normal/admin mode sidebar menu logic
+format dataframes
+format allocations data
 

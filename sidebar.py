@@ -34,12 +34,15 @@ def show_sidebar(st):
                     cache_jobs = st.checkbox('Cache job data', key='cache_jobs',value=False)
 
         with st.expander('Admin options'):
-                admin_mode = st.checkbox('Administrator', key='admin',value=False, help='Enable administrator mode')
-                target_user = st.text_input('Other username', key='target_user', 
+                
+            col1, col2 = st.columns([1, 2])
+            with col1:
+                admin_mode = st.checkbox('Admin', key='admin',value=False, help='Enable administrator mode')
+            target_user = st.text_input('Other username', key='target_user', 
                                             help="Other username\'s jobs if in admin mode",
                                             on_change=refresh_jobs)
-
-
+            with col2:
+                all_jobs = st.checkbox('All user jobs', key='all_jobs',value=False, help='Get jobs from all')
                          
 
         with st.expander('Detail job parameters'):

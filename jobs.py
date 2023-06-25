@@ -19,14 +19,19 @@ class LazyDecoder(json.JSONDecoder):
             s = regex.sub(replacement, s)
         return super().decode(s, **kwargs)
 
-def show_jobs(st, status_tab):        
+def show_jobs(st, status_tab):  
+
     def  get_user():
         if st.session_state.admin:
-            if st.session_state.target_user == "":
-                return ''
+            if st.session_state.all_jobs:
+                return str('')
             else:
-                return ' -u ' + st.session_state.target_user             
-        return ' -u ' + st.session_state.user
+                if st.session_state.target_user == "":
+                        st.warning('No username ')
+                else:
+                        return ' -u ' + st.session_state.target_user             
+        else:
+            return ' -u ' + st.session_state.user
         
     def get_drmaa_jobstats():                
             CMD = "qstat -f -w -F json -x -u $USER "
@@ -51,16 +56,17 @@ def show_jobs(st, status_tab):
 
     def get_jobstats():
 
-        @st.cache_data(persist=st.session_state.cache_jobs)
+        #@st.cache_data(persist=st.session_state.cache_jobs)
         def  get_ssh_jobs(creds, CMD):
             try:
+                user = get_user()
                 try:
-                    qstat = run("ssh " + creds + CMD + get_user(),
+                    qstat = run("ssh " + creds + CMD + user,
                                 capture_output=True, shell=True,
                                 timeout=SSH_TIMEOUT, check=True)                     
                 except CalledProcessError as c:
                     st.error('Could not run SSH command, error' + str(c))
-                    return pd.DataFrame(c) #qstat
+                    return pd.DataFrame(c) 
             except TimeoutExpired as t:
                     st.error("Check username, ssh " + creds + " failed: " + str(t))
             return qstat
@@ -69,7 +75,7 @@ def show_jobs(st, status_tab):
         if get_user() == "" and st.session_state.admin:
             msg =  "Getting job data for all users"
         else:
-             msg =  "Getting job data for " + get_user()
+             msg =  "Getting job data for " + str(get_user())
 
         with st.spinner(msg):
             creds = st.session_state.user + '@' + st.session_state.server             
@@ -103,10 +109,17 @@ def show_jobs(st, status_tab):
                     st.warning("Empty ssh username")
                     return
 
-            if len(pd.DataFrame(df)) > 0:
-                st.subheader('Showing ' + str(len(pd.DataFrame(df))) + ' jobs ')
-
+            #if len(pd.DataFrame(df)) > 0:
+            if 'Jobs' in df.keys():    
+                if get_user() != "":
+                    st.subheader('Showing ' + str(len(pd.DataFrame(df))) 
+                             + ' jobs for ' + get_user().split()[1])
+                else:
+                    st.subheader('Showing ' + str(len(pd.DataFrame(df))) 
+                             + ' jobs for all users')
                 st.dataframe(pd.DataFrame(df))
+            else:
+                 st.info("No jobs for user " + st.session_state.target_user)
 
         else:
             st.warning("No network connection")

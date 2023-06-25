@@ -17,48 +17,37 @@ def show_queue(st, queue):
     def get_qstat(creds, cmd):
 
         try:
-
             try:
                     qstat = run("ssh " + creds + ' ' + cmd, capture_output=True,shell=True,
-                                        check=True, timeout=SSH_TIMEOUT)
-                    
+                                        check=True, timeout=SSH_TIMEOUT)                    
             except CalledProcessError as c:
                     st.error('Could not run SSH command, error' + c.output.decode())
                     return
-
         except TimeoutExpired:
                 st.error("SSH timeout getting qstat using {}".format(creds))
                 return
         return qstat                                 
 
 
-
     with queue:
-        with st.form(key='qstat_form'):
+
             with st.spinner('Retrieving queue status'):
                 cmd = 'qstat -f -w -F json -f -Qa ' 
                 if PBS_HOST:
                     if inet.up():
-                        qstat_btn = st.form_submit_button('Cluster Queue Status', 
-                                       disabled=True)
                         try:
                             qstat = run(cmd, capture_output=True, shell=True,
                                               timeout=SSH_TIMEOUT, check=True)
                         except TimeoutError:
-                             st.error('Timed out running qstat locally on cluster node')
+                             st.error('Timed out running qstat on cluster')
 
-                        df = pd.read_json(qstat.stdout.decode())
+                        df = json.loads(qstat.stdout.decode())
                         df = pd.DataFrame(df)
-                        df = pd.json_normalize(df['Queue'])
                         st.dataframe(df)
                     else:
                          st.warning("No network connection")
 
                 else:
-
-                        qstat = st.form_submit_button('Cluster Queue Status', 
-                                       disabled=( st.session_state.user== "" ) ,
-                                       type="primary")
                         if re.search ( '\s', st.session_state.user):
                                 st.error("username has spaces")
 

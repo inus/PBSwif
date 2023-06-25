@@ -31,40 +31,31 @@ def show_shell(st, shell):
 
             with st.form(key='shell_form'):
 
-                if not DRMAA_avail:
-                    if st.session_state.use_ssh:
-                        creds = st.session_state.user + '@' + st.session_state.server        
+                    #if st.session_state.use_ssh:
+
+                        if not DRMAA_avail:
+                                creds = st.session_state.user + '@' + st.session_state.server        
+                                
                         cmd = do_command(st.session_state.testcmd)
 
-                        if st.form_submit_button('SSH  $ ' + cmd, 
+                        if st.form_submit_button('Shell $ ' + cmd, 
                                                     disabled=( st.session_state.user == "" ) ):
                                 try:
                                     try:
-                                        output = run("ssh " + creds + ' ' +  cmd, capture_output=True, 
-                                                     shell=True, timeout=SSH_TIMEOUT, check=True)                    
+                                        if DRMAA_avail:
+                                            output = run(cmd, capture_output=True, 
+                                                     shell=True, timeout=SSH_TIMEOUT, check=True)
+                                        else:
+                                            output = run("ssh " + creds + ' ' +  cmd, capture_output=True, 
+                                                     shell=True, timeout=SSH_TIMEOUT, check=True)                                                                            
                                     except CalledProcessError as c:
-                                        st.error('Error in SSH command:' + str(c))
+                                        st.error('Error in shell command:' + str(c))
                                         return
                                 except TimeoutError as t:
-                                    st.error("SSH {} failed ".format(creds))
+                                    st.error("Shell command \"{}\" failed ".format(creds))
                                     return                                 
                                 st.text(output.stdout.decode())
-                    else:
-                            st.warning("SSH is not available")
-                else:
-                        if st.form_submit_button('Test SSH', type="primary"):
-                                try:
-                                    with st.spinner():
-                                        output = run(st.session_state.testcmd, capture_output=True, shell=True) 
-                                    st.spinner("Done")
-                                except TimeoutError:
-                                    st.error("SSH timeout")
-                                    return
-                                
-                                lines = [x.decode() for x in output.stdout.splitlines() ]
-                                for l in lines:
-                                    st.text(l)
-
+                    #else:
+                            #st.warning("Shell is unavailable")
         else:
              st.warning("No network connection")
-                            

@@ -3,6 +3,7 @@ import os.path
 import streamlit as st
 import time
 import sys
+from subprocess import run
 
 from common import DEFAULT_WALLTIME
 from pbs import DRMAA_avail
@@ -32,6 +33,10 @@ def show_sidebar(st):
                     else:
                         user = st.text_input('SSH cluster username', key='user', value=str((sys.argv[1])))
                     cache_jobs = st.checkbox('Cache job data', key='cache_jobs',value=False)
+        else:
+                    who = run('whoami', capture_output=True, shell=True)
+                    user = st.text_input('Cluster username', key='user', value=who.stdout.decode(), disabled=True)
+             
 
         with st.expander('Admin options'):
                 
@@ -76,11 +81,12 @@ def show_sidebar(st):
                                             key='Queue')
             st.divider()
 
-        if not DRMAA_avail:
-                with st.expander('SSH Connection'):
+        #if not DRMAA_avail:
+        with st.expander('SSH Connection'):
+            if DRMAA_avail:
+                st.write('App running on cluster')
+            use_ssh = st.checkbox('Use SSH', key='use_ssh', value=(not DRMAA_avail), disabled = DRMAA_avail)
+            server= st.text_input('Host server', value=CLUSTERHOST, key='server', disabled = DRMAA_avail)  
 
-                    use_ssh = st.checkbox('Use via SSH', key='use_ssh', value=True)            
-                    server= st.text_input('SSH server', value=CLUSTERHOST, key='server')  
-
-                    st.divider()
+            st.divider()
 

@@ -19,44 +19,21 @@ class LazyDecoder(json.JSONDecoder):
             s = regex.sub(replacement, s)
         return super().decode(s, **kwargs)
 
+
 def show_jobs(st, status_tab):  
 
     def  get_user():
         if st.session_state.admin:
             if st.session_state.all_jobs:
-                return str('')
+                return 
             else:
-                if st.session_state.target_user == "":
-                        st.warning('No username ')
-                else:
+                if st.session_state.target_user != "":
                         return ' -u ' + st.session_state.target_user             
         else:
             return ' -u ' + st.session_state.user
         
-    def get_drmaa_jobstats():                
-            CMD = "qstat -f -w -F json -x -u $USER "
-            try:
-                jobs = run(CMD, capture_output=True, shell=True)
-            except TimeoutError:
-                 st.error("Qstat failed")
-                 return pd.DataFrame()            
-            try:
-                    df = json.load(jobs.stdout.decode(), cls=LazyDecoder)
-            except:
-                    df = json.loads(jobs.stdout.decode(), )
-                    df = pd.json_normalize(df)
-                    st.info("No recent queued or completed jobs found")
-                    return df
-
-            df = json.loads(jobs.stdout.decode(), cls=LazyDecoder)
-            df = pd.DataFrame(df) 
-            df = pd.json_normalize(df.Jobs)
-            return df
-
-
     def get_jobstats():
 
-        #@st.cache_data(persist=st.session_state.cache_jobs)
         def  get_ssh_jobs(creds, CMD):
             try:
                 user = get_user()
@@ -72,51 +49,68 @@ def show_jobs(st, status_tab):
             return qstat
 
 
+        def get_drmaa_jobs(creds, CMD):                
+                
+                if st.session_state.admin:
+                    if st.session_state.target_user != "":
+                        userarg  =  ' -u ' + st.session_state.target_user 
+                    else:
+                        userarg = ''
+                else:
+                        userarg = ' -u ' + st.session_state.user
+                try:
+                    jobs = run(CMD + userarg, capture_output=True, shell=True)
+                except TimeoutError as t:
+                    st.error("Qstat jobs via drmaa failed: " + str(t))
+                    return pd.DataFrame()            
+                return jobs
+
+
+
         if get_user() == "" and st.session_state.admin:
             msg =  "Getting job data for all users"
         else:
              msg =  "Getting job data for " + str(get_user())
 
         with st.spinner(msg):
-            creds = st.session_state.user + '@' + st.session_state.server             
+            creds = st.session_state.user 
+            if not DRMAA_avail:
+                    creds += '@' + st.session_state.server             
+
             CMD = ' qstat -f -w -F json -x ' 
              
-            if st.session_state.user != "" and not re.search ( '\s', st.session_state.user): 
+            if DRMAA_avail:
+                qstat = get_drmaa_jobs(creds,CMD) 
+            else:
+                if st.session_state.user != "" and not re.search ( '\s', st.session_state.user): 
                     qstat = get_ssh_jobs(creds, CMD)                    
-                    if qstat.returncode == 0:                        
-                        try:                    
-                                df = json.loads(qstat.stdout.decode(), cls=LazyDecoder)
-                        except : 
-                                st.error("Error reading json ")
-                                return pd.DataFrame() 
-                        return df #.Jobs.explode()                                         
-                    else:
-                        return pd.DataFrame()
-            
-            if re.search ( '\s', st.session_state.user):
-                 st.error("Spaces in username")                        
+            if qstat.returncode == 0:                        
+                    try:                    
+                         df = json.loads(qstat.stdout.decode(), cls=LazyDecoder)
+                    except: 
+                         st.error("Error reading json ")
+                         return pd.DataFrame() 
+                    return pd.DataFrame(df)
+            else:
+                st.error("Error reading job stats")
+
         st.spinner("Completed")            
 
         
     with status_tab:
         if inet.up():
-            if DRMAA_avail:
-                df = get_drmaa_jobstats()
+            if st.session_state.user != "":
+                df = get_jobstats()
             else:
-                if st.session_state.user != "":
-                    df = get_jobstats()
-                else:
-                    st.warning("Empty ssh username")
-                    return
+                st.warning("Empty ssh username")
+                return
 
-            #if len(pd.DataFrame(df)) > 0:
             if 'Jobs' in df.keys():    
-                if get_user() != "":
-                    st.subheader('Showing ' + str(len(pd.DataFrame(df))) 
-                             + ' jobs for ' + get_user().split()[1])
-                else:
-                    st.subheader('Showing ' + str(len(pd.DataFrame(df))) 
-                             + ' jobs for all users')
+
+                dlen = len(pd.DataFrame(df))
+                user = str(get_user())
+                if user == None: user = 'all users'
+                st.subheader('Showing ' + str(dlen) + ' jobs for ' + user)
                 st.dataframe(pd.DataFrame(df))
             else:
                  st.info("No jobs for user " + st.session_state.target_user)

@@ -87,6 +87,7 @@ link to user tickets?
 
 
 Clean up normal/admin mode sidebar menu logic
-format dataframes
+format dataframes for jobs and queue stats better
 format allocations data
+summarize/graphs
 

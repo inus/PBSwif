@@ -53,28 +53,13 @@ def show_queue(st, queue):
 
                         if st.session_state.user != "" and not re.search ( '\s', st.session_state.user): 
                             creds = st.session_state.user + '@' + st.session_state.server 
-
                             if inet.up():
-
                                     qstat = get_qstat(creds, cmd)
-
                                     df = pd.DataFrame(json.loads(qstat.stdout.decode()))
-                                    qs  = pd.Series(df.Queue.keys())
-
-                                    q_list = []
-                                    sc = df.Queue[qs[0]]['state_count'].split()
-                                    header = [ x.split(':')[0] for x in sc ]
-                                    for q in qs: # for every queue
-                                        sd =[]
-                                        sc = df.Queue[q]['state_count'].split() #all states
-                                        sd += [ int(x.split(':')[1]) for x in sc ] 
-                                        q_list += [sd]
-                                    
-                                    ql = pd.DataFrame(q_list, qs, columns=header, dtype=int)
-                                    st.dataframe(ql)
+                                    df = pd.DataFrame(df)
+                                    st.dataframe(df)
                             else:
                                  st.warning("No network connection")
-
                         else:
                             st.error("Give a valid cluster username for ssh, not \"{}\"".format(st.session_state.user))
 

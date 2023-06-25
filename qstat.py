@@ -56,8 +56,12 @@ def show_queue(st, queue):
                             if inet.up():
                                     qstat = get_qstat(creds, cmd)
                                     df = pd.DataFrame(json.loads(qstat.stdout.decode()))
-                                    df = pd.DataFrame(df)
-                                    st.dataframe(df)
+                                    df['date'] = df['timestamp'].apply(lambda x: \
+                                                pd.Timestamp(x, unit='s').strftime('%Y-%m-%d %H:%M:%S'))
+                                    
+                                    data = pd.DataFrame.from_records(df.Queue, index=df.Queue.index)
+                                    pd.concat([data, pd.DataFrame.from_records(df['Queue'])])
+                                    st.write(data)
                             else:
                                  st.warning("No network connection")
                         else:

@@ -24,11 +24,8 @@ def show_jobs(st, status_tab):
 
     def  get_user():
         if st.session_state.admin:
-            if st.session_state.all_jobs:
-                return 
-            else:
-                if st.session_state.target_user != "":
-                        return ' -u ' + st.session_state.target_user             
+            if st.session_state.target_user != "":
+                return ' -u ' + st.session_state.target_user             
         else:
             return ' -u ' + st.session_state.user
         
@@ -42,7 +39,7 @@ def show_jobs(st, status_tab):
                 else:
                      cmd = creds + CMD + user
                 try:
-                    qstat = run("ssh " + cmd,
+                    jobs = run("ssh " + cmd,
                                 capture_output=True, shell=True,
                                 timeout=SSH_TIMEOUT, check=True)                     
                 except CalledProcessError as c:
@@ -50,7 +47,7 @@ def show_jobs(st, status_tab):
                     return pd.DataFrame() 
             except TimeoutExpired as t:
                     st.error("Check username, ssh " + creds + " failed: " + str(t))
-            return qstat
+            return jobs
 
 
         def get_drmaa_jobs(creds, CMD):                
@@ -94,7 +91,6 @@ def show_jobs(st, status_tab):
                     except: 
                          st.error("Error reading json ")
                          return pd.DataFrame() 
-#                    import pdb; pdb.set_trace()
                     if 'Jobs' in df.keys():
                         return pd.DataFrame(df)
                     else:
@@ -113,16 +109,17 @@ def show_jobs(st, status_tab):
                 st.warning("Empty ssh username")
                 return
 
-            if len(df) > 4:
-                    if 'Jobs' in df.keys():    
-                            if get_user() == None: 
-                                st.subheader('Showing ' + str(len(df.Jobs)) + ' jobs for all users')       
-                            else:
-                                st.subheader('Showing ' + str(len(df.Jobs)) + ' jobs for ' + get_user())
-                            st.dataframe(pd.DataFrame(df))
-            else:
-                 st.info("No jobs for user " + st.session_state.target_user)
+            if 'Jobs' in df.keys():    
+                    if get_user() == None: 
+                        st.subheader('Showing ' + str(len(df.Jobs)) + ' jobs for all users')       
+                    else:
+                        st.subheader('Showing ' + str(len(df.Jobs)) + ' jobs for ' + get_user())
 
+
+                    st.write(pd.DataFrame.from_records( df['Jobs'], index=df.Jobs.keys()))
+
+            else:
+                    st.info("No jobs for user " + st.session_state.target_user)
         else:
             st.warning("No network connection")
 

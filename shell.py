@@ -38,7 +38,7 @@ def show_shell(st, shell):
                                 
                         cmd = do_command(st.session_state.testcmd)
 
-                        if st.form_submit_button('Shell $ ' + cmd, 
+                        if st.form_submit_button('**:green[$]** ' + cmd, 
                                                     disabled=( st.session_state.user == "" ) ):
                                 try:
                                     try:

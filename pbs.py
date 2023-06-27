@@ -1,18 +1,22 @@
 #pbs.py
-
+import datetime
 import streamlit as st
 from subprocess import run, TimeoutExpired
 import os,socket
 
 import inet
 
-#saved_jobids=[]
-
 try:
     import drmaa
     DRMAA_avail = True
 except:
     DRMAA_avail = False
+
+from common import check_select, DEFAULT_WALLTIME 
+from shell import run_cluster_cmd
+from update_rp_label import update_rp_label
+
+User_RPs = []
 
 PBS_HOSTS = ['login1', 'login2', 'globus.chpc.ac.za']
 host = socket.gethostname()
@@ -22,16 +26,60 @@ if host in PBS_HOSTS:
 else:
     PBS_HOST=False
 
-import datetime
-from common import check_select, DEFAULT_WALLTIME 
 
 def show_pbs(st, pbs_tab):
     
     pbs_text=''
 
+    def get_rp():
+        op=run_cluster_cmd(st.session_state.user + '@' + st.session_state.server,
+            {'rp': 'grep ischeepers /home/userdb/programme_info.csv'},'rp','')
+        pgms = []
+        opl = op.splitlines()
+        for line in range(len(opl)):
+            word = opl[line].split(',')[0]
+            pgms.append(word)
+        return pgms 
+
+    def check_valid_rp(RP):
+        op=run_cluster_cmd(st.session_state.user + '@' + st.session_state.server,
+            {'vrp': 'cat /home/userdb/projects_status.csv | grep ' + RP},'vrp','')
+        RP = op.split(',')
+        end_date = datetime.datetime.strptime(RP[2], '%Y%M%d' )
+        if end_date < datetime.datetime.now():
+            return 
+        else:
+            return RP
+
+    def get_rp_info(RP):
+        op=run_cluster_cmd(st.session_state.user + '@' + st.session_state.server,
+            {'vrp': 'cat /home/userdb/projects_status.csv | grep ' + RP},'vrp','')
+        RP = op.split(',')
+        rp_name = RP[0]
+        start_date = RP[1] #datetime.datetime.strptime(RP[1], '%Y%M%d' )
+        end_date = RP[2] #datetime.datetime.strptime(RP[2], '%Y%M%d' )
+        cpuh = RP[3]
+        return rp_name, start_date, end_date, cpuh
+    
+        
     def set_dl_filename():
         return st.session_state.dl_filename
-
+    
+    def show_rp_info():
+            try: 
+                x = st.session_state.user_rp 
+            except:
+                return 
+            try:
+                rp_name, start, end, cpuh = get_rp_info(st.session_state.user_rp)
+            except:
+                print('rp info exception')
+                return 
+            #st = datetime.datetime.strptime(start)
+            #et = datetime.datetime.strptime(end)
+            #stt_dt = datetime.datetime.strftime(st, '%d %b %Y')
+            #end_dt = datetime.datetime.strftime(et,  '%d %b %Y')
+            st.info('**[{}]**: Start: {}\n End {}\n CPU-h: {}'.format(rp_name, start, end, cpuh))
 
     with pbs_tab:
 
@@ -44,6 +92,8 @@ def show_pbs(st, pbs_tab):
         with st.expander('PBS Job Parameters'):
 
                 leftcol1, rightcol1 = st.columns([1,1])
+
+                User_RPs = get_rp()
 
                 with leftcol1:
                     if not DRMAA_avail:
@@ -59,6 +109,14 @@ def show_pbs(st, pbs_tab):
                                 ssh_button = st.button('Please give a valid SSH username, not \"' \
                                            + st.session_state.user + '\"',
                                             key='ssh_button', disabled=True)
+                with rightcol1:
+                    valid_RP = []
+
+                    valid_RP += [ check_valid_rp(x) for x in User_RPs if x != 'None']
+                    RP_selectbox_labels = [x[0] for x in valid_RP if x != None]
+                    st.selectbox("CHPC Research Programme Code", RP_selectbox_labels,
+                                  key='user_rp',
+                                  on_change=show_rp_info()) 
 
                 with st.form(key='pbs_form'):
                                                         
@@ -69,9 +127,16 @@ def show_pbs(st, pbs_tab):
                             jobname = st.text_input("PBS job name", value='MyJobName', 
                                                     key="jobname", max_chars=15,)
 
-                            programme = st.text_input("**:red[CHPC Research Programme Code :warning:]**", 
-                                                    placeholder='ABCD1234', key='programme', max_chars=8,
-                                                    help='Provide your allocated RP code')
+
+                            if st.session_state.user_rp == "":
+                                msg = "**:red[CHPC Research Programme Code :warning:]**"
+                            else:
+                                msg = "CHPC Research Programme Code" 
+
+                            programme = st.text_input(msg, 
+                                                    placeholder='CHPC9999', key='programme', max_chars=8,
+                                                    help='Provide your allocated RP code',
+                                                    value = st.session_state.user_rp)
                         
                             mails_on  = st.multiselect("Email on job events",
                                                         ['b', 'e', 'a'], default = 'e',

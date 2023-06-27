@@ -14,7 +14,6 @@ except:
 
 from common import check_select, DEFAULT_WALLTIME 
 from shell import run_cluster_cmd
-from update_rp_label import update_rp_label
 
 User_RPs = []
 
@@ -83,8 +82,8 @@ def show_pbs(st, pbs_tab):
 
     with pbs_tab:
 
-        if not DRMAA_avail and not st.session_state.use_ssh:
-            st.warning('PBS Job submission needs to run on a login node or SSH, neither available')
+        #if not DRMAA_avail:
+        #    st.warning('PBS Job submission needs to run on a login node or SSH, neither available')
 
         if not inet.up():
             st.warning("No network connection")            
@@ -285,7 +284,8 @@ def show_pbs(st, pbs_tab):
                                 except:
                                     st.error( 'PBS job not submitted. Check if your RP programme code is valid')
                         else: #ssh 
-                            if st.session_state.use_ssh: 
+
+                            #if st.session_state.use_ssh: 
 
                                 if st.session_state.user == "user":
                                     st.error("Invalid cluster username \"{}\"".format(st.session_state.user))

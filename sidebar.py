@@ -32,7 +32,13 @@ def show_sidebar(st):
                         warning_place.warning("Set up ssh keys, test without password")
                     else:
                         user = st.text_input('SSH cluster username', key='user', value=str((sys.argv[1])))
-                    cache_jobs = st.checkbox('Cache job data', key='cache_jobs',value=False)
+
+                    col1L, col1R = st.columns([1, 2])
+                    with col1L: 
+                         pass
+                        #cache_jobs = st.checkbox('Cache job data', key='cache_jobs',value=False)
+                    with col1R:
+                        qsub_remote = st.checkbox('Enable qsub', key='qsub_ok',value=False)
         else:
                     who = run('whoami', capture_output=True, shell=True)
                     user = st.text_input('Cluster username', key='user', value=who.stdout.decode(), disabled=True)

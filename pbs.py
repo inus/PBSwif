@@ -5,6 +5,7 @@ from subprocess import run, TimeoutExpired
 import os,socket
 
 import inet
+from common import show_info
 
 try:
     import drmaa
@@ -78,12 +79,9 @@ def show_pbs(st, pbs_tab):
             #et = datetime.datetime.strptime(end)
             #stt_dt = datetime.datetime.strftime(st, '%d %b %Y')
             #end_dt = datetime.datetime.strftime(et,  '%d %b %Y')
-            st.info('**[{}]**: Start: {}\n End {}\n CPU-h: {}'.format(rp_name, start, end, cpuh))
+            st.info('**[{}]**: From {} to {}:  {} cpuh'.format(rp_name, start, end, cpuh))
 
     with pbs_tab:
-
-        #if not DRMAA_avail:
-        #    st.warning('PBS Job submission needs to run on a login node or SSH, neither available')
 
         if not inet.up():
             st.warning("No network connection")            
@@ -111,8 +109,8 @@ def show_pbs(st, pbs_tab):
                 with rightcol1:
                     valid_RP = []
 
-                    valid_RP += [ check_valid_rp(x) for x in User_RPs if x != 'None']
-                    RP_selectbox_labels = [x[0] for x in valid_RP if x != None]
+                    valid_RP += [ check_valid_rp(x) for x in User_RPs] 
+                    RP_selectbox_labels = [x[0] for x in valid_RP  if x != None]
                     st.selectbox("CHPC Research Programme Code", RP_selectbox_labels,
                                   key='user_rp',
                                   on_change=show_rp_info()) 
@@ -345,33 +343,53 @@ def show_pbs(st, pbs_tab):
                                     if st.session_state.user == "user":
                                       st.error("Please give a valid username instead of " + st.session_state.user)
                                     else:
-                                      
-                                            CMD = 'scp ' + filename + ' ' + creds + ':' + st.session_state.workdir                                        
-                                            exitcode = run(CMD,capture_output=True, shell=True) #, timeout=15.0, check=True)
+                                        if st.session_state.qsub_ok:
+                                                st.warning("Submitting job via ssh " + st.session_state.server)
+                                                CMD = 'scp ' + filename + ' ' + creds + ':' + st.session_state.workdir                                        
+                                                exitcode = run(CMD,capture_output=True, shell=True) #, timeout=15.0, check=True)
+                                                print("INFO: SCP command sent :", filename)
 
-                                            if exitcode.returncode < 0:
-                                                st.error("Could not copy file to server, timeout " + filename + exitcode.returncode)
-                                                return
-                                        
-                                            st.info('File ' + filename + ' copied to cluster ' + \
-                                                st.session_state.workdir + '/' + st.session_state.dl_filename)
+                                                if exitcode.returncode < 0:
+                                                    st.error("Could not copy file to server, timeout " + filename + exitcode.returncode)
+                                                    return
+                                            
+                                                st.info('File ' + filename + ' copied to cluster ' + \
+                                                    st.session_state.workdir + '/' + st.session_state.dl_filename)
 
-                                            qsub_out = run("ssh " + creds  + \
-                                                        ' qsub ' + st.session_state.workdir \
-                                                        + '/' + st.session_state.dl_filename, 
-                                                        capture_output=True, shell=True) #, timeout=15.0, check=True)                                            
-                                            if qsub_out.returncode < 0:
-                                                st.error("Timeout, Could not run qsub " + qsub_out.returncode)
-                            
-                                            if qsub_out.returncode == 0:
-                                                jobid = qsub_out.stdout.decode()
+                                                print("INFO: SCP command sent :", 
+                                                            'scp ' + filename + ' ' + creds + ':' +
+                                                            st.session_state.workdir)
+                                                
+                                                qsub_out = run("ssh " + creds  + \
+                                                            ' qsub ' + st.session_state.workdir \
+                                                            + '/' + st.session_state.dl_filename, 
+                                                            capture_output=True, shell=True) #, timeout=15.0, check=True)                                            
+                                                
+                                                if qsub_out.returncode < 0:
+                                                    st.error("Timeout, Could not run qsub " + qsub_out.returncode)
+                                                    print("ERROR: Timeout, QSUB command not sent :")
+
+                                                print("INFO: QSUB command sent :", ' qsub ' + 
+                                                    st.session_state.workdir \
+                                                    + '/' + st.session_state.dl_filename)
 
 
-                                            os.remove(filename)
-                                    
+                                                #if qsub_out.returncode == 0:
+                                                #    jobid = qsub_out.stdout.decode()
+                                                #    st.info('Job ' + str(jobid) + 'submitted')
+
+
+                                                os.remove(filename)
+                                        else:
+                                                print("Qsub remote not active")
+                                                st.error("Qsub from PBSwif not enabled")
 
                 st.download_button('Download PBS script to local disk' + st.session_state.dl_filename, 
                                    pbs_text,
                                    file_name=st.session_state.dl_filename, 
                                    use_container_width=True )
+
+
+
+        show_info(st)
 

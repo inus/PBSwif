@@ -1,17 +1,41 @@
-#qstat.py 
+#qstat.py aka queue.py 
 import streamlit as st
 import json
 from subprocess import run, TimeoutExpired, CalledProcessError
 import pandas as pd
 import re
 import inet
+from bokeh.plotting import figure, show
+from bokeh.palettes import Spectral8 
+import plost
 from pbs import DRMAA_avail, PBS_HOST, host
 SSH_TIMEOUT=15
 
+
+def queue_graph(data):
+
+    state_names = ['Transit', 'Queued', 'Held', 'Waiting', 'Running', 'Exiting', 'Begun' ]
+    queues = list(data.index)
+    showq   = ['normal', 'smp', 'bigmem', 'gpu_1', 'gpu_2', 'gpu_3', 'gpu_4', 'large', 
+               'serial', 'seriallong', 'accelrys']
+    states = {} 
+    for q in queues:        
+        state_count = [ int(x.split(':')[1]) for x in  data.state_count[q].split() ]
+        states[q] = state_count
+
+    data = { 'Queue': queues,
+             'States': state_names,
+             'Counts': states}
+
+    #df = pd.DataFrame(data, columns=['Queue', 'States', 'Counts'] )
+    df = pd.DataFrame.from_records(states) 
+    df.index=state_names
+    df.reindex()
+    st.bar_chart(df) #, x=df, y=df)
+    st.write(df)
+
     
-
 def show_queue(st, queue):
-
   
     @st.cache_data(persist="disk")
     def get_qstat(creds, cmd):
@@ -61,7 +85,8 @@ def show_queue(st, queue):
                                     
                                     data = pd.DataFrame.from_records(df.Queue, index=df.Queue.index)
                                     pd.concat([data, pd.DataFrame.from_records(df['Queue'])])
-                                    st.write(data)
+                                    #st.write(data)
+                                    queue_graph(data)
                             else:
                                  st.warning("No network connection")
                         else:

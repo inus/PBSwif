@@ -1,6 +1,7 @@
 # jobs.py
 import json
-import pandas as pd
+#import pandas as pd
+import polars as pd 
 import re
 import streamlit as st
 from subprocess import run, TimeoutExpired, CalledProcessError
@@ -97,7 +98,7 @@ def show_jobs(st, status_tab):
                          st.error("Error reading json ")
                          return pd.DataFrame() 
                     if 'Jobs' in df.keys():
-                        return pd.DataFrame(df)
+                        return df ############<<<<<<<<<<<<<<<<<<
                     else:
                         return df
             else:
@@ -117,11 +118,11 @@ def show_jobs(st, status_tab):
 
             if 'Jobs' in df.keys():    
                     if get_user() == None: 
-                        st.subheader('Showing ' + str(len(df.Jobs)) + ' jobs for all users')       
+                        st.subheader('Showing ' + str(len(df['Jobs'])) + ' jobs for all users')       
                     else:
-                        st.subheader('Showing ' + str(len(df.Jobs)) + ' jobs for ' + get_user())
+                        st.subheader('Showing ' + str(len(df['Jobs'])) + ' jobs for ' + get_user())
 
-                    st.write(pd.DataFrame.from_records( df['Jobs'], index=df.Jobs.keys()))
+                    st.dataframe(df['Jobs'])
 
             else:
                     if st.session_state.target_user:

@@ -3,7 +3,6 @@ import streamlit as st
 
 import re,json
 from subprocess import run, CalledProcessError, TimeoutExpired
-import pandas as pd
 
 import inet
 from pbs import DRMAA_avail 

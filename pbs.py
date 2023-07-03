@@ -3,9 +3,8 @@ import datetime
 import streamlit as st
 from subprocess import run, TimeoutExpired
 import os,socket
-
-import inet
 from common import show_info
+import inet
 
 try:
     import drmaa
@@ -31,7 +30,47 @@ def show_pbs(st, pbs_tab):
     
     pbs_text=''
 
-    def get_rp():
+
+    @st.cache_data(persist="disk")
+    def get_rp_detail(pgms):
+
+        #if  'rp_fetched' in st.session_state.keys():
+        #    print("Debug fetched")
+        #    return 
+
+        prm = '|'.join(pgms)
+        #print("DEBUG entering get_rp_detail : ",pgms)
+
+        op=run_cluster_cmd(st.session_state.user + '@' + st.session_state.server,
+            {'vrp': "cat /home/userdb/projects_status.csv | grep -E \'" + prm + "\'" },'vrp','')        
+        if op is not None:
+            lines = op.splitlines()
+            
+            rp_list=[]
+            rp_list += [ l.split(',') for l in lines]
+            pgm_dict = {}
+            for line in rp_list:
+                for  pgm in pgms:
+                    if pgm == line[0]:
+                        pgm_dict[pgm] = {'start': line[1],
+                                    'end': line[2],
+                                    'alloc': line[3],
+                                    'cpuh': line[4]
+                                    } 
+                        
+            st.session_state['rp_fetched'] = True
+            return pgm_dict
+                # >>> {k:row[0] for row in groups for k in row[1:]}
+
+
+    @st.cache_data(persist="disk")
+    def get_rp_list(): # get list of matching programmes for user
+        print("DEBUG in: get__rp_list : before ssh",)
+        #if  'user_rp_fetched' in st.session_state.keys():
+        #    print("Debug fetched")
+        #    return 
+
+
         op=run_cluster_cmd(st.session_state.user + '@' + st.session_state.server,
             {'rp': 'grep ischeepers /home/userdb/programme_info.csv'},'rp','')
         pgms = []
@@ -39,47 +78,63 @@ def show_pbs(st, pbs_tab):
         for line in range(len(opl)):
             word = opl[line].split(',')[0]
             pgms.append(word)
-        return pgms 
+        #print("INFO: ssh get_rp_list: ", pgms)  
+        user_rps=get_rp_detail(pgms)
 
-    def check_valid_rp(RP):
-        op=run_cluster_cmd(st.session_state.user + '@' + st.session_state.server,
-            {'vrp': 'cat /home/userdb/projects_status.csv | grep ' + RP},'vrp','')
-        RP = op.split(',')
-        end_date = datetime.datetime.strptime(RP[2], '%Y%M%d' )
-        if end_date < datetime.datetime.now():
-            return 
-        else:
-            return RP
-
-    def get_rp_info(RP):
-        op=run_cluster_cmd(st.session_state.user + '@' + st.session_state.server,
-            {'vrp': 'cat /home/userdb/projects_status.csv | grep ' + RP},'vrp','')
-        RP = op.split(',')
-        rp_name = RP[0]
-        start_date = RP[1] #datetime.datetime.strptime(RP[1], '%Y%M%d' )
-        end_date = RP[2] #datetime.datetime.strptime(RP[2], '%Y%M%d' )
-        cpuh = RP[3]
-        return rp_name, start_date, end_date, cpuh
+        #print("DEBUG user_rp ",user_rps)  
+        st.session_state['user_rp_fetched'] = True   
+        return user_rps 
     
+    
+    
+    def get_rp_info(rp):
+        print("INFO: ssh get_rp_info: ", rp)
+
+        print(rp.keys())
+
+        #rp_name = RP[0]
+        #start_date = RP[1] #datetime.datetime.strptime(RP[1], '%Y%M%d' )
+        #end_date = RP[2] #datetime.datetime.strptime(RP[2], '%Y%M%d' )
+        #cpuh = RP[3]
+        #print( rp_name, start_date, end_date, cpuh)
+        
+
         
     def set_dl_filename():
         return st.session_state.dl_filename
     
-    def show_rp_info():
-            try: 
-                x = st.session_state.user_rp 
-            except:
-                return 
-            try:
-                rp_name, start, end, cpuh = get_rp_info(st.session_state.user_rp)
-            except:
-                print('rp info exception')
-                return 
-            #st = datetime.datetime.strptime(start)
-            #et = datetime.datetime.strptime(end)
-            #stt_dt = datetime.datetime.strftime(st, '%d %b %Y')
-            #end_dt = datetime.datetime.strftime(et,  '%d %b %Y')
-            st.info('**[{}]**: From {} to {}:  {} cpuh'.format(rp_name, start, end, cpuh))
+    def show_rp_info(rp_dict):
+#            print("\n\n\n\nDEBUG in show rp info\n\n ")                
+#            print(rp_dict.keys())
+            if 'user_rp' in st.session_state.keys():
+               # print(st.session_state.user_rp)
+               # print(rp_dict[st.session_state.user_rp])
+
+                #st.info()
+                    
+                    
+                    txt = 'Programme {} \nFrom {} to {}:  {} of {} cpuh used'.format(
+                    st.session_state.user_rp,
+                    rp_dict[st.session_state.user_rp]['start'],
+                    rp_dict[st.session_state.user_rp]['end'],
+                    rp_dict[st.session_state.user_rp]['cpuh'],
+                    rp_dict[st.session_state.user_rp]['alloc'])
+                
+                    #st = datetime.datetime.strptime(start)
+                    #et = datetime.datetime.strptime(rp_dict[st.session_state.user_rp]['end'])
+
+                    #if et > datetime.datetime.now():
+                    #        st.warning( txt + ' Expired ')
+                    #else:
+                    st.info(txt)
+                    #stt_dt = datetime.datetime.strftime(st, '%d %b %Y')
+                    #end_dt = datetime.datetime.strftime(et,  '%d %b %Y')
+
+
+
+            else:
+                print("DEBUG in show rp info\n ")    
+
 
     with pbs_tab:
 
@@ -92,7 +147,7 @@ def show_pbs(st, pbs_tab):
 
                 with centrecol1:
                     if st.checkbox("Get RP", key='getrp', ):
-                        User_RPs = get_rp()
+                        User_RPs = get_rp_list()
 
                 with leftcol1:
                     if not DRMAA_avail:
@@ -111,13 +166,21 @@ def show_pbs(st, pbs_tab):
                 with rightcol1:
 
                     if st.session_state.getrp:
-                        valid_RP = []
 
-                        valid_RP += [ check_valid_rp(x) for x in User_RPs] 
-                        RP_selectbox_labels = [x[0] for x in valid_RP  if x != None]
-                        st.selectbox("CHPC Research Programme Code", RP_selectbox_labels,
-                                    key='user_rp',
-                                    on_change=show_rp_info()) 
+                        #if not rp_dict:
+                        rp_dict = get_rp_list()
+                        if rp_dict:
+                            RP_selectbox_labels = rp_dict.keys() 
+                            st.selectbox("CHPC Research Programme Code", RP_selectbox_labels,
+                                    key='user_rp',)
+                                    #on_change=show_rp_info(rp_dict)) 
+                        
+                        else:
+                            RP_selectbox_labels = ''
+                        #[x[0] for x in valid_RP  if x != None]
+                            st.selectbox("CHPC Research Programme Code", RP_selectbox_labels,
+                                    key='user_rp',)
+                                    #on_change=show_rp_info(rp_dict)) 
 
                 with st.form(key='pbs_form'):
                                                         
@@ -297,7 +360,7 @@ def show_pbs(st, pbs_tab):
                                 #if not st.session_state.programme and not st.session_state.getrp:
                                 if not st.session_state.getrp: 
                                     st.info("No RP info ")
-                                    
+
                                 else:
 
                                     if not st.session_state.programme:

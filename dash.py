@@ -10,7 +10,8 @@ from plot import plot_bokeh
 
 from bokeh.plotting import figure
 from bokeh.palettes import Spectral8 
-from bokeh.models import ColumnDataSource, RangeTool, Range1d, HoverTool, Circle
+from bokeh.models import ColumnDataSource, RangeTool,\
+       Range1d, HoverTool, Circle, LinearAxis 
 
 
 import plost
@@ -73,7 +74,14 @@ def show_dash(st, dash):
                      st.selectbox("Period", period_d.keys(), key='period', on_change=redraw())               
 
               with col2:            
-                     st.checkbox("Add circles", key='circles')
+                     st.checkbox("Show node counts", key='circles')
+       
+                     col3, col4 = st.columns(2)
+                     with col3:
+                            placeholder_1 = st.empty()
+                     with col4:
+                            placeholder_2 = st.empty()
+
               
               with st.spinner('Retrieving queue status'):
                      ps = pl2.Path(LOGDIR)
@@ -81,15 +89,8 @@ def show_dash(st, dash):
 
                      files = sorted(list(ps.glob(FILEPATTERN)))
 
-                     '''
-                     print("DEBUG; read files start: ", files[0])
-                     print("DEBUG; read files   end: ", files[-1])
-                     print("DEBUG: period :",  st.session_state.period, '\n lookup: ',period_d[st.session_state.period])
-                     '''
-
                      s_files = files[ -period_d[st.session_state.period]::]
 
-                     print("DEBUG; start: sfiles # ", len(s_files))
 
                      for p in  s_files:
                             dfs = pl.read_csv(str(p),
@@ -109,11 +110,38 @@ def show_dash(st, dash):
                             pl.col('time').cast(pl.Datetime),
                             pl.col(cols_int).cast(pl.Int32),
                             pl.col(cols_float).cast(pl.Float32) ]))
-                     #df.sort('time') 
                      
-                     #df=df.with_columns(pl.col('dtime') = pl.col('time').dt.strftime('%Y-%m-%d %H:%M'))
                      df.with_columns(dtime = df['time'].dt.strftime('%Y-%m-%d %H:%M'))
-                     #df['dtime'] = df['time'].dt.strftime('%Y-%m-%d %H:%M')
+
+                     #print("DEBUG; before ", df.shape)
+                     #placeholder_1.write(files[0])
+
+
+                     if  st.session_state.period == '1m': #
+                            every = '1h'
+                     elif st.session_state.period == '1y':
+                            every = '4h'
+                     elif st.session_state.period == 'all':
+                            every = '24h'
+                     else:
+                            every = ''
+
+                     if every != '':
+
+                            
+                            df = df.with_columns(pl.col('time').set_sorted()).groupby_dynamic(
+                                                               'time',
+                                                               every=every,
+                                                               check_sorted=False,
+                                                               period='2h'
+                                                        ).agg(
+                                                          pl.all().exclude(
+                                                               'time','dtime').mean()
+                                                        )
+                            
+
+                     placeholder_1.write("Start: " + str(df['time'][0]))
+                     placeholder_2.write("End  : " + str(df['time'][-1]))
 
                      tooltips = [
                             ("", "@y "),
@@ -134,33 +162,36 @@ def show_dash(st, dash):
                             x_axis_label='Time',
                             y_axis_label='cpu_percent',
                             x_range=Range1d(df['time'][0], df['time'][-1]),
-                            #tooltips = tooltips,
-                            #hover = HoverTool(#names=hovernames,mode="vline",                                        
                      )
 
                      cp = p.line(df['time'], df['cpu_percent'], color='red', legend_label='CPU %',)
                      np = p.line(df['time'], df['nodes_running_percent'], legend_label='Nodes %', color='green')
-                     
+
                      if st.session_state.circles:
-                            cpc = p.circle_y(df['time'], df['cpu_percent'], color='red',legend_label="CPU")
-                            npc = p.circle_x(df['time'], df['nodes_running_percent'],  color='blue', legend_label="Nodes")
-                     #p.step( 'time', 'jobs_queued', source=source, color='blue', alpha=0.5, legend_label="Queued")
+                            p.extra_y_ranges['nodes'] = Range1d(df['nodes_running'].min(), df['nodes_running'].max())
+                            nr = p.line(df['time'], df['nodes_running'], color="blue", y_range_name='nodes', legend_label='Nodes running')
+                            no = p.line(df['time'], df['nodes_offline'], color="orange", y_range_name='nodes', legend_label='Nodes offline')
 
-                     #p.circle_x( 'time', 'jobs_exiting', source=source, color='red', alpha=0.5, legend_label="Held", size=10)
+                            ax2 = LinearAxis(y_range_name="nodes", axis_label="Nodes running")
+                            ax2.axis_label_text_color ="navy"
+                            p.add_layout(ax2, 'right')
+                            p.y_range=Range1d(0,100)
 
-                     #p.circle_x( 'time', 'jobs_held', source=source, color='black', alpha=0.5, legend_label="Exiting", size=10)
 
+#                     if st.session_state.circles:
+#                            cpc = p.circle_y(df['time'], df['cpu_percent'], color='red',legend_label="CPU")
+#                            npc = p.circle_x(df['time'], df['nodes_running_percent'],  color='blue', legend_label="Nodes")
 
                      
                      hover = HoverTool(#names=hovernames,
                             mode="vline",                                        
                             tooltips = tooltips, 
                             #formatters=formatters,
-                            renderers = [ cp, np,],
+                            renderers = [ cp, np, ],
                      )
-
-
                      p.add_tools(hover)
+                     p.add_layout(p.legend[0], 'right')                     
+
                      st.bokeh_chart(p, use_container_width=True)
 
 
@@ -171,51 +202,27 @@ def show_dash(st, dash):
                             x_axis_label='Time',
                             y_axis_label='Jobs',
                             height=300,
-                            #tools=[HoverTool()],
-                            #tooltips= tooltips,
-                            #[    
-                            #       #("Data point @x has the value @y"), # \n @jobs_running @jobs_queued" ),
-                            #       ("Time", "$time{%F %H:%M}"),
-                            #       ("Running", "$jobs_running"),
-                            #       ("Queued", "$jobs_queued"),
-                            #],
-                            #formatters={
-                            #       '@{time}'        : 'datetime', 
-                            #       '@{jobs_running}': 'printf',
-                            #       '@{jobs_queued}' : 'printf',
-                            #}
                      )
 
-                            #formatters={'@time': 'datetime'},
-                            #)
-
                      hover2 = HoverTool(
-                            tooltips = [                                  
-                                   ("", "@y"),
-                                   ("Time", "$time{%F %H:%M}"),
-                                   #("CPU %", "@cpu_percent"),
-                                   #("Nodes %", "@nodes_running_percent"),                                                               
-                            ],
-                            formatters={
-                                   '@{time}'        : 'datetime',
-                                   '@{cpu_percent}' : 'printf',
-                                   '@{nodes_running_percent}'  : 'printf',
-                            },
+                            tooltips =tooltips,
+                            formatters= formatters, #{
                             mode="vline",         
                             )
-                     
-                     #q.add_tools(hover2)
-
+                     hover2.renderers = []
                      colors = ['red', 'green', 'blue', 'orange']
                      for col in job_cols:                           
-                           q.line( df['time'],df[col], 
+                           hr_render=  q.line( df['time'],df[col], 
                                    color = colors[job_cols.index(col)],
                                    legend_label=col)
+                           hover2.renderers.append(hr_render)
+
+                     q.add_tools(hover2)
+                     q.add_layout(q.legend[0], 'right')                     
 
                      st.bokeh_chart(q, use_container_width=True)
                      
-
-                     with st.expander('Data', ):
+                     with st.expander('Data (' + str(len(df)) + ' items)' ):
                             st.dataframe(df)
 
               st.spinner("Done")

@@ -67,11 +67,16 @@ def show_jobs(st, status_tab):
                 return jobs
 
 
-
-        if  get_user() == None: #"" and st.session_state.admin:
-            msg =  "Getting job data for all users"
+        #if  get_user() == None: #"" and 
+        msg =  "Getting job data for "
+        if st.session_state.admin:
+            if st.session_state.target_user:                 
+                msg +=  st.session_state.target_user 
+            else:
+                 msg += 'all users'
         else:
-             msg =  "Getting job data for " + str(get_user())
+             msg += st.session_state.user
+
 
         with st.spinner(msg):
             creds = st.session_state.user 
@@ -97,6 +102,7 @@ def show_jobs(st, status_tab):
                         return df
             else:
                 st.error("Error reading job stats")
+                return pd.DataFrame()
 
         st.spinner("Completed")            
 
@@ -115,11 +121,13 @@ def show_jobs(st, status_tab):
                     else:
                         st.subheader('Showing ' + str(len(df.Jobs)) + ' jobs for ' + get_user())
 
-
                     st.write(pd.DataFrame.from_records( df['Jobs'], index=df.Jobs.keys()))
 
             else:
-                    st.info("No jobs for user " + st.session_state.target_user)
+                    if st.session_state.target_user:
+                       st.info("No recent PBS jobs for user **" + st.session_state.target_user + "**")
+                    else:
+                        st.info("No recent PBS jobs for user **" + st.session_state.user + "**")
         else:
             st.warning("No network connection")
 

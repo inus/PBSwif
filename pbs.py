@@ -88,9 +88,11 @@ def show_pbs(st, pbs_tab):
 
         with st.expander('PBS Job Parameters'):
 
-                leftcol1, rightcol1 = st.columns([1,1])
+                leftcol1, centrecol1, rightcol1 = st.columns([1,1,1])
 
-                User_RPs = get_rp()
+                with centrecol1:
+                    if st.checkbox("Get RP", key='getrp', ):
+                        User_RPs = get_rp()
 
                 with leftcol1:
                     if not DRMAA_avail:
@@ -107,13 +109,15 @@ def show_pbs(st, pbs_tab):
                                            + st.session_state.user + '\"',
                                             key='ssh_button', disabled=True)
                 with rightcol1:
-                    valid_RP = []
 
-                    valid_RP += [ check_valid_rp(x) for x in User_RPs] 
-                    RP_selectbox_labels = [x[0] for x in valid_RP  if x != None]
-                    st.selectbox("CHPC Research Programme Code", RP_selectbox_labels,
-                                  key='user_rp',
-                                  on_change=show_rp_info()) 
+                    if st.session_state.getrp:
+                        valid_RP = []
+
+                        valid_RP += [ check_valid_rp(x) for x in User_RPs] 
+                        RP_selectbox_labels = [x[0] for x in valid_RP  if x != None]
+                        st.selectbox("CHPC Research Programme Code", RP_selectbox_labels,
+                                    key='user_rp',
+                                    on_change=show_rp_info()) 
 
                 with st.form(key='pbs_form'):
                                                         
@@ -125,12 +129,13 @@ def show_pbs(st, pbs_tab):
                                                     key="jobname", max_chars=15,)
 
 
-                            if st.session_state.user_rp == "":
-                                msg = "**:red[CHPC Research Programme Code :warning:]**"
-                            else:
-                                msg = "CHPC Research Programme Code" 
+                            if st.session_state.getrp:
+                                if st.session_state.user_rp == "":
+                                    msg = "**:red[CHPC Research Programme Code :warning:]**"
+                                else:
+                                    msg = "CHPC Research Programme Code" 
 
-                            programme = st.text_input(msg, 
+                                programme = st.text_input(msg, 
                                                     placeholder='CHPC9999', key='programme', max_chars=8,
                                                     help='Provide your allocated RP code',
                                                     value = st.session_state.user_rp)
@@ -288,10 +293,18 @@ def show_pbs(st, pbs_tab):
                                 if st.session_state.user == "user":
                                     st.error("Invalid cluster username \"{}\"".format(st.session_state.user))
                                     return 
-                                if not st.session_state.programme:
-                                    st.error('No RP Code given')
-                                    return 
+
+                                #if not st.session_state.programme and not st.session_state.getrp:
+                                if not st.session_state.getrp: 
+                                    st.info("No RP info ")
+                                    
                                 else:
+
+                                    if not st.session_state.programme:
+                                        st.warning('No RP Code given')
+                                        programme='TBD'
+                                    #return 
+                                
                                     filename = '/tmp/' + st.session_state.dl_filename 
                                     fp = open( filename, 'w')
                                     if st.session_state.bash:

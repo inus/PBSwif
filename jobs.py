@@ -45,9 +45,11 @@ def show_jobs(st, status_tab):
                                 timeout=SSH_TIMEOUT, check=True)                     
                 except CalledProcessError as c:
                     st.error('Could not run SSH command, error' + str(c))
-                    return pd.DataFrame() 
+                    return pd.DataFrame({'Jobs': 0}) 
             except TimeoutExpired as t:
                     st.error("Check username, ssh " + creds + " failed: " + str(t))
+                    return pd.DataFrame({'Jobs': 0}) 
+
             return jobs
 
 
@@ -64,7 +66,7 @@ def show_jobs(st, status_tab):
                     jobs = run(CMD + userarg, capture_output=True, shell=True)
                 except TimeoutError as t:
                     st.error("Qstat jobs via drmaa failed: " + str(t))
-                    return pd.DataFrame()            
+                    return pd.DataFrame({'Jobs' : []})            
                 return jobs
 
 
@@ -90,8 +92,11 @@ def show_jobs(st, status_tab):
                 qstat = get_drmaa_jobs(creds,CMD) 
             else:
                 if st.session_state.user != "" and not re.search ( '\s', st.session_state.user): 
-                    qstat = get_ssh_jobs(creds, CMD)                    
-            if qstat.returncode == 0:                        
+                    qstat = get_ssh_jobs(creds, CMD)    
+
+            if type(qstat) != int:
+                
+                if qstat.returncode == 0:                        
                     try:                    
                          df = json.loads(qstat.stdout.decode(), cls=LazyDecoder)
                     except: 

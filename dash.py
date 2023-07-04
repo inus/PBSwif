@@ -74,7 +74,7 @@ def show_dash(st, dash):
                      st.selectbox("Period", period_d.keys(), key='period', on_change=redraw())               
 
               with col2:            
-                     st.checkbox("Show node counts", key='circles')
+                     st.checkbox("Show node counts", key='nodes')
        
                      col3, col4 = st.columns(2)
                      with col3:
@@ -133,7 +133,7 @@ def show_dash(st, dash):
                                                                'time',
                                                                every=every,
                                                                check_sorted=False,
-                                                               period='2h'
+                                                               #period='2h'    #<<< TBD
                                                         ).agg(
                                                           pl.all().exclude(
                                                                'time','dtime').mean()
@@ -145,10 +145,18 @@ def show_dash(st, dash):
 
                      tooltips = [
                             ("", "@y "),
+                            #("Values","$cpu_percent"),
+                            #('', ""),
+                            #('', "$y2 "),
+                            
+                            #("cpu>", "@cpu_percent"),
+                            #('X2', "$y2")
                      ]
 
                      formatters={
                             '@{y}'        : 'printf' ,
+                            '@{x}'        : 'printf',
+                            #'@{$cpu_percent}'        : 'printf',
                             #'@{cpu_percent}' : 'printf df["cpu_percent"]',
                             #'@{nodes_running_percent}'  : 'printf',
                      }
@@ -167,7 +175,7 @@ def show_dash(st, dash):
                      cp = p.line(df['time'], df['cpu_percent'], color='red', legend_label='CPU %',)
                      np = p.line(df['time'], df['nodes_running_percent'], legend_label='Nodes %', color='green')
 
-                     if st.session_state.circles:
+                     if st.session_state.nodes:
                             p.extra_y_ranges['nodes'] = Range1d(df['nodes_running'].min(), df['nodes_running'].max())
                             nr = p.line(df['time'], df['nodes_running'], color="blue", y_range_name='nodes', legend_label='Nodes running')
                             no = p.line(df['time'], df['nodes_offline'], color="orange", y_range_name='nodes', legend_label='Nodes offline')
@@ -182,12 +190,17 @@ def show_dash(st, dash):
 #                            cpc = p.circle_y(df['time'], df['cpu_percent'], color='red',legend_label="CPU")
 #                            npc = p.circle_x(df['time'], df['nodes_running_percent'],  color='blue', legend_label="Nodes")
 
+                     if st.session_state.nodes:
+                            renderers = [ cp, np, nr, no]
+                     else:
+                            renderers = [ cp, np, ]
+
                      
                      hover = HoverTool(#names=hovernames,
                             mode="vline",                                        
                             tooltips = tooltips, 
-                            #formatters=formatters,
-                            renderers = [ cp, np, ],
+                            formatters=formatters,
+                            renderers = renderers #[ cp, np, ],
                      )
                      p.add_tools(hover)
                      p.add_layout(p.legend[0], 'right')                     

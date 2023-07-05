@@ -1,18 +1,17 @@
 #pbs.py
-import datetime
-import streamlit as st
-from subprocess import run, TimeoutExpired
-import os,socket
-from common import show_info
-import inet
-
 try:
     import drmaa
     DRMAA_avail = True
 except:
     DRMAA_avail = False
 
-from common import check_select, DEFAULT_WALLTIME 
+import datetime
+import streamlit as st
+from subprocess import run, TimeoutExpired
+import os,socket
+import inet
+
+from common import show_info, check_select, DEFAULT_WALLTIME 
 from shell import run_cluster_cmd
 
 User_RPs = []
@@ -27,7 +26,50 @@ else:
 
 
 def show_pbs(st, pbs_tab):
+
+
+        Resource_List = ['nodect', 'ncpus', 'mpiprocs', 'ngpus',
+                     'mem', 'place','select', 'walltime']
+        PBS_dict = {
+            'programme' : 'P', 
+            'email'     : 'm', 
+            'email_abe' : 'a' ,  
+            #'email_on_e' : 'e' ,  
+            #'email_on_b' : 'b' ,  
         
+            'jobname'  : 'N',
+            'Queue'    : 'q',  
+
+            #'walltime' : 'walltime', 
+            #'Resource' : Resource, 
+
+            #'cputype' : 'cputype', 
+            #'Memory' : 'mem',
+            #'Cores' : 'ncpus',
+            #'nodes' : '',
+            #'GPUs'   : 'ngpus',   
+            #'MPIprocs' : 'mpiprocs', 
+            'error'  : 'e', 
+            'out'    : 'o', 
+            'join'   : 'j oe',  
+            'Interactive' : 'I',
+            'Xfwd'  :        'X', 
+            #'Nodes' : '',  << nodect 
+            'Vars'  : 'V' }
+#            'bash'   : '#!/bin/bash',
+
+
+# Resource_List: []
+#{'mem': '120gb', 'mpiprocs': 4,
+#  'ncpus': 4, 'nodect': 1, 'place': 'free', 'select': '1:ncpus=4:mpiprocs=4:mem=120GB',
+#  'walltime': '01:00:00'}
+
+#['mem', 'mpiprocs','ncpus','nodect', 'place','select', 'ngpus']
+#  'walltime': '01:00:00'}
+
+#         select = "-l select={}:ncpus={}:ngpus={}:mpiprocs={}:mem={}GB".format(Nodes,Cores,GPUs,MPIprocs,Memory)
+
+
         pbs_text=''
 
         @st.cache_data(persist="disk")
@@ -92,7 +134,7 @@ def show_pbs(st, pbs_tab):
                         et = datetime.datetime.strptime(
                               rp_dict[st.session_state.user_rp]['end'], '%Y%m%d' )
                         et_d = et.strftime('%-d %b %Y') 
-                        st.info('Ends: ' + et_d )
+                        st.info('End:  ' + et_d )
 
                         st.info('CPU-h : ' + rp_dict[st.session_state.user_rp]['cpuh'] +
                                  ' of ' + rp_dict[st.session_state.user_rp]['alloc'])
@@ -237,8 +279,27 @@ def show_pbs(st, pbs_tab):
                                     st.error("The allocated CHPC Research Programme code, e.g. 'ABCD1234' is required to submit jobs")
                                 if not st.session_state.email:
                                     st.warning("No email address given, notification mail directive omitted")
-
+#############################
                                 select, Nodes, Cores, Memory, Queue, MPIprocs, GPUs = check_select(st)
+
+                                pbs_text1 = ''
+                                qsub_cmd1 = ''
+
+                                Resource_dict = {}
+                                for k in Resource_List:
+                                    Resource_dict[k] = st.session_state[k]
+
+                                cmd = {}; qs_cmd={}
+                                for k in PBS_dict:
+                                    if k=='Resource': break 
+                                    cmd[k] = '#PBS ' + '-' + PBS_dict[k] + '\n'
+                                    #pbs_text1 += '#PBS ' + '-' + PBS_dict[k] + '\n'
+                                    #qsub_cmd1 += '-' +  PBS_dict[k] + ' '
+                                    qs_cmd[k] = '-' +  PBS_dict[k] + ' '
+
+                                print("DEBUG \n\n\n", pbs_text1, )
+                                print("DEBUG ______________________________ \n\n\n", qsub_cmd1)
+
 
                                 if st.session_state.bash:
                                     st.text("#!/bin/bash")

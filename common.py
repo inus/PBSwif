@@ -4,7 +4,7 @@ import streamlit as st
 
 DEFAULT_WALLTIME=48
 
-global jobs_retrieved 
+#global jobs_retrieved 
 #jobs_retrieved  = False
 
 #Lengau queue specs from https://wiki.chpc.ac.za    

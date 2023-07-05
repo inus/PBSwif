@@ -1,1 +1,6 @@
 streamlit
+polars[all]
+bokeh==2.4.3
+plost
+pathlib2
+pexpect

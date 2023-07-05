@@ -37,8 +37,8 @@ cols_int = ['jobs_running', 'jobs_queued', 'jobs_held', 'jobs_exiting',
 
 cols_float = [ 'nodes_running_percent', 'cpu_percent' ]
 
-dtypes = {  #'time' : 'str', # l.datetime().str.to_datetime("%Y-%m-d %H:%M:%S") , # 'datetime',
-          'jobs_running': 'int', 'jobs_queued': 'int', 'jobs_held': 'int', 'jobs_exiting': 'int',
+dtypes = {'jobs_running': 'int', 'jobs_queued': 'int', 
+          'jobs_held': 'int', 'jobs_exiting': 'int',
           'nodes_running': 'int', 'nodes_offline': 'int', 'nodes_total': 'int',
           'nodes_running_percent': 'float', 
           'cpu_used': 'int', 'cpu_total': 'int', 'cpu_percent': 'float' }
@@ -63,7 +63,14 @@ num_cols =['jobs_running', 'jobs_queued', 'jobs_held', 'jobs_exiting',
 def show_dash(st, dash):
     
     def redraw():
-          print('Redrawing...')
+          print('Redrawing selectbox') # st.session_state.graph_period)
+    def sb_period(x):
+          if x=='1d': return '1 Day'
+          if x=='1w': return '1 Week'
+          if x=='1m': return '1 Month'
+          if x=='1y': return '1 Year'
+          return x
+          print('Debug sb period',x )
 
     with dash:
               
@@ -71,10 +78,11 @@ def show_dash(st, dash):
 
               col1, col2 = st.columns([1, 2])
               with col1:
-                     st.selectbox("Period", period_d.keys(), key='period', on_change=redraw())               
+                     st.selectbox("Period", period_d.keys(), key='graph_period',
+                                   index=0, format_func=sb_period, on_change=redraw())               
 
               with col2:            
-                     st.checkbox("Show node counts", key='nodes')
+                     st.checkbox("Show node counts", key='graph_nodes')
        
                      col3, col4 = st.columns(2)
                      with col3:
@@ -89,7 +97,7 @@ def show_dash(st, dash):
 
                      files = sorted(list(ps.glob(FILEPATTERN)))
 
-                     s_files = files[ -period_d[st.session_state.period]::]
+                     s_files = files[ -period_d[st.session_state.graph_period]::]
 
 
                      for p in  s_files:
@@ -117,11 +125,11 @@ def show_dash(st, dash):
                      #placeholder_1.write(files[0])
 
 
-                     if  st.session_state.period == '1m': #
+                     if  st.session_state.graph_period == '1m': #
                             every = '1h'
-                     elif st.session_state.period == '1y':
+                     elif st.session_state.graph_period == '1y':
                             every = '4h'
-                     elif st.session_state.period == 'all':
+                     elif st.session_state.graph_period == 'all':
                             every = '24h'
                      else:
                             every = ''
@@ -140,8 +148,8 @@ def show_dash(st, dash):
                                                         )
                             
 
-                     placeholder_1.write("Start: " + str(df['time'][0]))
-                     placeholder_2.write("End  : " + str(df['time'][-1]))
+                     placeholder_1.write("From: " + str(df['time'][0]))
+                     placeholder_2.write("To: " + str(df['time'][-1]))
 
                      tooltips = [
                             ("", "@y "),
@@ -175,7 +183,7 @@ def show_dash(st, dash):
                      cp = p.line(df['time'], df['cpu_percent'], color='red', legend_label='CPU %',)
                      np = p.line(df['time'], df['nodes_running_percent'], legend_label='Nodes %', color='green')
 
-                     if st.session_state.nodes:
+                     if st.session_state.graph_nodes:
                             p.extra_y_ranges['nodes'] = Range1d(df['nodes_running'].min(), df['nodes_running'].max())
                             nr = p.line(df['time'], df['nodes_running'], color="blue", y_range_name='nodes', legend_label='Nodes running')
                             no = p.line(df['time'], df['nodes_offline'], color="orange", y_range_name='nodes', legend_label='Nodes offline')
@@ -190,7 +198,7 @@ def show_dash(st, dash):
 #                            cpc = p.circle_y(df['time'], df['cpu_percent'], color='red',legend_label="CPU")
 #                            npc = p.circle_x(df['time'], df['nodes_running_percent'],  color='blue', legend_label="Nodes")
 
-                     if st.session_state.nodes:
+                     if st.session_state.graph_nodes:
                             renderers = [ cp, np, nr, no]
                      else:
                             renderers = [ cp, np, ]

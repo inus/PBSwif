@@ -44,7 +44,7 @@ def show_sidebar(st):
                     with col1R:
                         qsub_remote = st.checkbox('Enable qsub', key='qsub_ok',value=False)
         else:
-                    st.info("Running \"whoami\" to test ssh login")
+                    #st.info("Running \"whoami\" to test ssh login")
                     who = run('whoami', capture_output=True, shell=True, check=True, timeout=5,)
                     user = st.text_input('Cluster username', key='user', value=who.stdout.decode(), disabled=True)
              

@@ -27,11 +27,10 @@ def queue_graph(data):
              'States': state_names,
              'Counts': states}
 
-    #df = pd.DataFrame(data, columns=['Queue', 'States', 'Counts'] )
     df = pd.DataFrame.from_records(states) 
     df.index=state_names
     df.reindex()
-    st.bar_chart(df) #, x=df, y=df)
+    st.bar_chart(df) 
     st.write(df)
 
     
@@ -86,11 +85,11 @@ def show_queue(st, queue):
                                     data = pd.DataFrame.from_records(df.Queue, index=df.Queue.index)
                                     pd.concat([data, pd.DataFrame.from_records(df['Queue'])])
                                     #st.write(data)
-                                    queue_graph(data)
                             else:
                                  st.warning("No network connection")
                         else:
                             st.error("Give a valid cluster username for ssh, not \"{}\"".format(st.session_state.user))
 
+                queue_graph(data)
                 st.spinner("Completed")
 

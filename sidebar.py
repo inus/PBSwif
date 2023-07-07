@@ -5,7 +5,8 @@ import time
 import sys
 from subprocess import run
 
-from common import DEFAULT_WALLTIME
+#from common import DEFAULT_WALLTIME
+DEFAULT_WALLTIME='48:00:00'
 from pbs import DRMAA_avail
 
 CLUSTERHOST='scp.chpc.ac.za'
@@ -67,14 +68,14 @@ def show_sidebar(st):
                 with col1:
                     Nodes = st.number_input("Nodes", value=1, key='nodect', min_value=1, max_value=1000)
                     Cores = st.selectbox("Cores",  [1,2,3,4,5,6,7,8,9,10,11,12,
-                                                13,14,15,16,17,18,19,20,21,22,23,24,25,28,56], index=12, key='ncpus')
+                                                13,14,15,16,17,18,19,20,21,22,23,24,25,28,56], index=3, key='ncpus')
                     MPIprocs = st.selectbox("MPI Cores", [1,2,3,4,5,6,7,8,9,10,11,12,
-                                                13,14,15,16,17,18,19,20,21,22,23,24,25,28,56], index=12, key='mpiprocs')            
+                                                13,14,15,16,17,18,19,20,21,22,23,24,25,28,56], index=15, key='mpiprocs')            
                     Memory = st.selectbox("Memory in GB",  [60,120,500,1000], index=1, key='mem')
                     GPUs = st.selectbox("GPUs",  [0,1,2,3,4], key='ngpus')
 
                 with col2:     
-                    PlaceSelect = st.selectbox("Placement", ["none", "free", "excl"], key='PlaceSelect')
+                    PlaceSelect = st.selectbox("Place", ["none", "free", "excl"], key='place')
                     Interactive  = st.checkbox("Interactive", key="Interactive")
                     Vars  = st.checkbox("Keep env vars", key="Vars")
                     Xfwd  = st.checkbox("Forward X", key="Xfwd")
@@ -82,9 +83,10 @@ def show_sidebar(st):
                 
                 timecol1, timecol2 = st.columns([1,1])
                 with timecol1:
-                    walltime = st.number_input('Walltime h:m:s', value=DEFAULT_WALLTIME, key='walltime' )
+                    walltime = st.text_input('Walltime hh:mm:ss', value=DEFAULT_WALLTIME, key='walltime' )
                 with timecol2:
-                    walltime_m = st.number_input('Walltime min', value=0, key='walltime_m' )
+                     pass
+                    #walltime_m = st.number_input('Walltime min', value=0, key='walltime_m' )
 
                 Queue = st.selectbox("Queue",  ['serial','seriallong', 'smp','normal', 'large','xlarge','bigmem',
                                                 'vis','test','gpu_1','gpu_2','gpu_3','gpu_4','gpu_long','express'], index=0,

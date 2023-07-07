@@ -1,7 +1,7 @@
 # jobs.py
 import json
-#import pandas as pd
-import polars as pd 
+import pandas as pd
+import polars as pl 
 import re
 import streamlit as st
 from subprocess import run, TimeoutExpired, CalledProcessError
@@ -26,9 +26,9 @@ def show_jobs(st, status_tab):
     def  get_user():
         if st.session_state.admin:
             if st.session_state.target_user != "":
-                return ' -u ' + st.session_state.target_user             
+                return st.session_state.target_user             
         else:
-            return ' -u ' + st.session_state.user
+            return st.session_state.user
         
     def get_jobstats():
 
@@ -38,7 +38,7 @@ def show_jobs(st, status_tab):
                 if user==None: 
                      cmd = creds + CMD
                 else:
-                     cmd = creds + CMD + user
+                     cmd = creds + CMD + '-u ' + user
                 try:
                     jobs = run("ssh " + cmd,
                                 capture_output=True, shell=True,
@@ -67,7 +67,7 @@ def show_jobs(st, status_tab):
                 except TimeoutError as t:
                     st.error("Qstat jobs via drmaa failed: " + str(t))
                     return pd.DataFrame({'Jobs' : []})            
-                return jobs
+                return pd.DataFrame(jobs)
 
 
         #if  get_user() == None: #"" and 
@@ -103,9 +103,10 @@ def show_jobs(st, status_tab):
                          st.error("Error reading json ")
                          return pd.DataFrame() 
                     if 'Jobs' in df.keys():
-                        return df ############<<<<<<<<<<<<<<<<<<
+                        return pd.DataFrame(df) ############<<<<<<<<<<<<<<<<<<
                     else:
-                        return df
+                        df['Jobs']={}
+                        return pd.DataFrame(df)
             else:
                 st.error("Error reading job stats")
                 return pd.DataFrame()
@@ -122,12 +123,14 @@ def show_jobs(st, status_tab):
                 return
 
             if 'Jobs' in df.keys():    
+                if len(df['Jobs'])!=0:
                     if get_user() == None: 
-                        st.subheader('Showing ' + str(len(df['Jobs'])) + ' jobs for all users')       
+                            st.subheader('Showing ' + str(len(df['Jobs'])) + ' jobs for all users')       
                     else:
-                        st.subheader('Showing ' + str(len(df['Jobs'])) + ' jobs for ' + get_user())
-
+                            st.subheader('Showing ' + str(len(df['Jobs'])) + ' jobs for ' + get_user())
                     st.dataframe(df['Jobs'])
+                else:
+                     st.write('No jobs found') 
 
             else:
                     if st.session_state.target_user:

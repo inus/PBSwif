@@ -11,10 +11,10 @@ from subprocess import run, TimeoutExpired
 import os,socket
 import inet
 
-from common import show_info, check_select, DEFAULT_WALLTIME 
+from common import show_info, check_select
+from sidebar import DEFAULT_WALLTIME 
 from shell import run_cluster_cmd
 
-User_RPs = []
 
 PBS_HOSTS = ['login1', 'login2', 'globus.chpc.ac.za']
 host = socket.gethostname()
@@ -24,39 +24,21 @@ if host in PBS_HOSTS:
 else:
     PBS_HOST=False
 
+User_RPs = []
+
 
 def show_pbs(st, pbs_tab):
 
-
         Resource_List = ['nodect', 'ncpus', 'mpiprocs', 'ngpus',
-                     'mem', 'place','select', 'walltime']
+                         'mem', 'place', 'walltime']
         PBS_dict = {
-            'programme' : 'P', 
-            'email'     : 'm', 
-            'email_abe' : 'a' ,  
-            #'email_on_e' : 'e' ,  
-            #'email_on_b' : 'b' ,  
+            'bash': '#!/bin/bash', 'programme': 'P', 
+            'email': 'M', 'jobname': 'N', 'Queue': 'q',  
+            'error': 'e', 'out': 'o', 'join': 'j oe',  
+            'Interactive' : 'I', 'Xfwd': 'X', 'Vars': 'V',  
+            'Select'      : Resource_List,}
         
-            'jobname'  : 'N',
-            'Queue'    : 'q',  
-
-            #'walltime' : 'walltime', 
-            #'Resource' : Resource, 
-
-            #'cputype' : 'cputype', 
-            #'Memory' : 'mem',
-            #'Cores' : 'ncpus',
-            #'nodes' : '',
-            #'GPUs'   : 'ngpus',   
-            #'MPIprocs' : 'mpiprocs', 
-            'error'  : 'e', 
-            'out'    : 'o', 
-            'join'   : 'j oe',  
-            'Interactive' : 'I',
-            'Xfwd'  :        'X', 
-            #'Nodes' : '',  << nodect 
-            'Vars'  : 'V' }
-#            'bash'   : '#!/bin/bash',
+        dl_file_contents=''
 
 
 # Resource_List: []
@@ -69,8 +51,6 @@ def show_pbs(st, pbs_tab):
 
 #         select = "-l select={}:ncpus={}:ngpus={}:mpiprocs={}:mem={}GB".format(Nodes,Cores,GPUs,MPIprocs,Memory)
 
-
-        pbs_text=''
 
         @st.cache_data(persist="disk")
         def get_rp_detail(pgms):
@@ -88,12 +68,8 @@ def show_pbs(st, pbs_tab):
                 for line in rp_list:
                     for  pgm in pgms:
                         if pgm == line[0]:
-                            pgm_dict[pgm] = {'start': line[1],
-                                        'end': line[2],
-                                        'alloc': line[3],
-                                        'cpuh': line[4]
-                                        }                             
-#                st.session_state['rp_fetched'] = True
+                            pgm_dict[pgm] = {'start': line[1], 'end': line[2],
+                                        'alloc': line[3], 'cpuh': line[4]}                             
                 return pgm_dict
 #To do:  convert above to form   # >>> {k:row[0] for row in groups for k in row[1:]}
 
@@ -110,26 +86,19 @@ def show_pbs(st, pbs_tab):
                 word = opl[line].split(',')[0]
                 pgms.append(word)
             user_rps=get_rp_detail(pgms)
-            #st.session_state['user_rp_fetched'] = True    # <<< ????
             return user_rps 
         
         
-            
-        def set_dl_filename():
-            return st.session_state.dl_filename
         
         def show_rp_info(rp_dict, place):
                 
                 def show_rp_data():
                     with place.container():                    
-#                        st.info(rp_dict[st.session_state.user_rp]['start'] + ' -- ' +
-#                                rp_dict[st.session_state.user_rp]['end'])
 
                         stt = datetime.datetime.strptime(
                               rp_dict[st.session_state.user_rp]['start'], '%Y%m%d' )
                         st_d = stt.strftime('%-d %b %Y') 
                         st.info("Start: " +  st_d)
-
 
                         et = datetime.datetime.strptime(
                               rp_dict[st.session_state.user_rp]['end'], '%Y%m%d' )
@@ -139,21 +108,14 @@ def show_pbs(st, pbs_tab):
                         st.info('CPU-h : ' + rp_dict[st.session_state.user_rp]['cpuh'] +
                                  ' of ' + rp_dict[st.session_state.user_rp]['alloc'])
 
-
-
                     if et < datetime.datetime.now():  
                         st.write('Expired :warning:')
 
-
                 if 'user_rp' in st.session_state.keys():
-                    print("DEBUG in show_rp_info:", ) #rp_dict.keys(), place)    
                     show_rp_data()
-
-                else: # still no data?
-                    print("DEBUG in show_rp_info: no key", ) #rp_dict.keys(), place)    
-                    if 'user_rp' in st.session_state.keys():
-                        show_rp_data() 
-
+                    #
+                    #if 'user_rp' in st.session_state.keys():
+                    #    st.session_state.user_rp.help = 'Select RP code for details'
 
 
         ############################################################################################
@@ -165,7 +127,6 @@ def show_pbs(st, pbs_tab):
             with st.expander('PBS Job Parameters'):
 
                     leftcol1, centrecol1, rightcol1 = st.columns([1,1,1])
-
 
                     with leftcol1:
                         if not DRMAA_avail:
@@ -185,7 +146,7 @@ def show_pbs(st, pbs_tab):
 
                     with centrecol1:
                         rp_info_place = st.empty() 
-                        if st.checkbox("Get RP", key='getrp', ):
+                        if st.checkbox("Get RP", key='getrp', help='(Re)Select RP code for programme info'):
                             User_RPs = get_rp_list()                    
 
                     with rightcol1:
@@ -195,7 +156,6 @@ def show_pbs(st, pbs_tab):
                         if st.session_state.getrp:
 
                             if not 'rp_dict' in locals() or 'rp_dict' in globals():
-                                print("DEBUG NO RP DICT")
                                 rp_dict = get_rp_list()
 
                             if rp_dict:
@@ -204,7 +164,7 @@ def show_pbs(st, pbs_tab):
                                              RP_selectbox_labels, key='user_rp',
                                              on_change=show_rp_info(
                                                 rp_dict, rp_info_place)) 
-                                show_rp_info(rp_dict, rp_info_place)                                                                        
+                                #show_rp_info(rp_dict, rp_info_place)
                             else:
                                 RP_selectbox_labels = ''
                                 st.selectbox("CHPC Research Programme Code", 
@@ -212,20 +172,14 @@ def show_pbs(st, pbs_tab):
                                              on_change=show_rp_info(
                                                 rp_dict, rp_info_place)) 
                                 
-        
-
-
+    
                     ###########################################################
                     with st.form(key='pbs_form'):
                                                             
                             form_leftcol, form_rightcol = st.columns([1,2])
-
-                            with form_leftcol:
-                        
+                            with form_leftcol:                        
                                 jobname = st.text_input("PBS job name", 
-                                                        value='MyJobName', 
-                                                        key="jobname", max_chars=15,)
-
+                                            value='JobName', key="jobname", max_chars=15,)
 
                                 if st.session_state.getrp:
                                     if st.session_state.user_rp == "":
@@ -233,24 +187,35 @@ def show_pbs(st, pbs_tab):
                                     else:
                                         msg = "CHPC Research Programme Code" 
 
-                                    programme = st.text_input(msg, 
-                                                        placeholder='CHPC9999', key='programme', max_chars=8,
-                                                        help='Provide your CHPC allocated RP code',
-                                                        value = st.session_state.user_rp)
-                            
-                                mails_on  = st.multiselect("Email on job events",
-                                                            ['b', 'e', 'a'], default = 'e',
-                                                            key='mails_on', 
-                                                            help = "Send email on job events: **b**egin/**e**nd/**a**bort"  )
-                            
+                                    programme = st.text_input(msg, placeholder='CHPC9999',
+                                                    key='programme', max_chars=8,
+                                                    help='Provide your CHPC allocated RP code',
+                                                    value = st.session_state.user_rp)
+
                                 email = st.text_input("Email address", placeholder='your@email.addr',
-                                                    key='email', help="Fill in to receive email")
+                                                    key='email', help="Fill in to receive job notification email")
                                 
+                                if st.session_state.email != "": # mail events abe
+                                    lcol1, ccol1, rcol1 = st.columns(3)                                    
+                                    with lcol1:
+                                        mail_on_b = st.checkbox('b', key='mail_on_begin', help='Begin')
+                                    with ccol1:
+                                        mail_on_e = st.checkbox('e', key='mail_on_end', help='End', value=True)
+                                    with rcol1:
+                                        mail_on_a = st.checkbox('a', key='mail_on_abort', help='Abort')
+
+                                    if email:
+                                        email_opts = ''
+                                        if mail_on_a:  email_opts += 'a'
+                                        if mail_on_b:  email_opts += 'b'
+                                        if mail_on_e:  email_opts += 'e'
+                                        st.session_state['email_opts'] = email_opts
+
                                 col_left, col_right = st.columns([1,1])
 
                                 with col_left:
                                     bash  = st.checkbox("Enable bash", key="bash", value=True,
-                                                    help="Add bash to script to enable bash variables and constucts")
+                                                    help="Add bash shell to script header")
                                 with col_right:
                                     join  = st.checkbox("Join files", key="join", value=False,
                                                     help="Combine output and error into one file")
@@ -273,108 +238,72 @@ def show_pbs(st, pbs_tab):
                                                 label_visibility='collapsed', 
                                                 value=st.session_state.jobname + '.pbs')
 
+############################                    ############################### end of form
+
                             if st.form_submit_button('Preview PBS script'):
                                 if 'programme' not in st.session_state.keys():
-                                #if not st.session_state.programme:
-                                    st.error("The allocated CHPC Research Programme code, e.g. 'ABCD1234' is required to submit jobs")
+                                    st.error("The allocated CHPC Research Programme code is required to submit jobs")
                                 if not st.session_state.email:
                                     st.warning("No email address given, notification mail directive omitted")
-#############################
+
                                 select, Nodes, Cores, Memory, Queue, MPIprocs, GPUs = check_select(st)
 
-                                pbs_text1 = ''
-                                qsub_cmd1 = ''
 
                                 Resource_dict = {}
                                 for k in Resource_List:
                                     Resource_dict[k] = st.session_state[k]
 
-                                cmd = {}; qs_cmd={}
+                                cmd = {}; qs_cmd={}; sel = {}
                                 for k in PBS_dict:
-                                    if k=='Resource': break 
-                                    cmd[k] = '#PBS ' + '-' + PBS_dict[k] + '\n'
-                                    #pbs_text1 += '#PBS ' + '-' + PBS_dict[k] + '\n'
-                                    #qsub_cmd1 += '-' +  PBS_dict[k] + ' '
-                                    qs_cmd[k] = '-' +  PBS_dict[k] + ' '
-
-                                print("DEBUG \n\n\n", pbs_text1, )
-                                print("DEBUG ______________________________ \n\n\n", qsub_cmd1)
-
-
-                                if st.session_state.bash:
-                                    st.text("#!/bin/bash")
-                                    pbs_text +=  "#!/bin/bash\n"
-                                    qsub_cmd = 'qsub '
-
-                                if programme:
-                                    st.text("#PBS -P " + programme)
-                                    pbs_text += "#PBS -P " + programme + '\n'
-                                    qsub_cmd += ' -P ' + programme
-                                else:
-                                    st.text("#PBS -P " + 'RPCODE')
-                                    pbs_text += "#PBS -P RPCODE\n"
-                                    qsub_cmd += ' -P ' + 'RPCODE'
-
-                                qsub_cmd += ' -N ' + st.session_state.jobname  + ' '
-                                pbs_text += '#PBS -N' + st.session_state.jobname + '\n'
-
-                                if email and st.session_state.Notify:
-                                    st.text("#PBS -M " + email) 
-                                    pbs_text += "#PBS -M " + email + '\n'
-                                    st.text("#PBS -m " + ''.join(mails_on))
-                                    pbs_text = "#PBS -m " + ''.join(mails_on) +'\n'
-                                    
-                                st.text("#PBS " + select)
-                                pbs_text = "#PBS " + select + '\n'
-                                qsub_cmd += select
-
-                                st.text("#PBS -q " + Queue)
-                                pbs_text = "#PBS -q " + Queue + '\n'
-                                qsub_cmd += ' -q ' + Queue
-
-                                ts = 'walltime=' + str(st.session_state.walltime ) + ':' + \
-                                                str(st.session_state.walltime_m)
-                                st.text("#PBS -l " + ts)
-                                pbs_text += "#PBS -l " + ts + '\n'
-                                qsub_cmd += ' -l ' + ts 
+                                    if k=='Select':
+                                        for j in Resource_List: 
+                                                if st.session_state[j]:
+                                                    sel[j] = st.session_state[j] 
+                                        break
+                                    else:
+                                        if k in st.session_state.keys():
+                                            if k=='bash':
+                                                if st.session_state[k]:
+                                                    cmd[k] = PBS_dict[k]
+                                            elif k in ['jobname', 'email', 'Queue', 'programme']:
+                                                if st.session_state[k]:
+                                                    qs_cmd[k] = '-' + PBS_dict[k] + ' ' + st.session_state[k] 
+                                                    cmd[k] = '#PBS ' +  qs_cmd[k] 
+                                                    if k=='email':
+                                                        qs_cmd['email_opts'] = '-m' + st.session_state.email_opts 
+                                                        cmd['email_opts'] = '#PBS -m ' + st.session_state.email_opts
+                                            elif k in [ 'join' , 'interactive', 'Xfwd',]:
+                                                if st.session_state[k]:
+                                                    qs_cmd[k] = '-' + PBS_dict[k]
+                                                    cmd[k] = '#PBS ' +  qs_cmd[k] 
+                                            else:
+                                                if st.session_state[k]:
+                                                    qs_cmd[k] =   '-' + PBS_dict[st.session_state[k]] + ' ' + st.session_state[k] 
+                                                    cmd[k] = '#PBS ' + qs_cmd[k]
 
 
-                                if st.session_state.Vars:
-                                    st.text("#PBS -V")
-                                    pbs_text += "#PBS -V\n"
-                                    qsub_cmd +=  ' -V '
 
-                                if st.session_state.jobname: 
-                                    st.text("#PBS -N " + st.session_state.jobname)
-                                    pbs_text += "#PBS -N " + st.session_state.jobname + '\n'
+                                selstr =  '-l select={}:ncpus={}:mpiprocs={}:mem={}GB -l walltime={} '.format(
+                                        sel['nodect'], sel['ncpus'], sel['mpiprocs'], sel['mem'], 
+                                        #sel['ngpus'],
+                                        sel['walltime'],)
+                                
+                                qs_cmd['Select'] = selstr
+                                cmd['Select']  = '#PBS ' + selstr
+                                cmd['modules'] = st.session_state.modules
+                                cmd['command'] = st.session_state.command
 
-                                if st.session_state.Xfwd: 
-                                    st.text("#PBS -X")
-                                    pbs_text += "#PBS -X \n"
-                                    qsub_cmd +=  ' -X '
+                                for k in cmd.keys():
+                                    st.text(cmd[k]) 
+                                    dl_file_contents += cmd[k] + '\n'
 
-                                if st.session_state.Interactive:
-                                    st.text("#PBS -I")
-                                    pbs_text += "#PBS -I\n"
-                                    qsub_cmd += ' -I' 
-                                    st.info('Start an interactive cluster job as below, use your own RPCODE')
-                                    st.text(qsub_cmd, help="Copy and paste to a ssh session on a login node")
-                                else: 
-                                    # join error and output files if not interactive
-                                    if st.session_state.join:
-                                        st.text('#PBS -j oe')
-                                        pbs_text += '#PBS -j oe\n'
+                                fp = open('/tmp/' + st.session_state.jobname + '.pbs', 'w')
+                                fp.write(dl_file_contents); fp.close()
 
-                                if st.session_state.workdir:
-                                        st.text('cd ' + st.session_state.workdir)
-                                        pbs_text += 'cd ' + st.session_state.workdir + '\n'
 
-                                    
-                                st.text(modules)
-                                pbs_text += st.session_state.modules + '\n'
+#{'nodect': 1}{'mem': 120}{'ncpus': 4}{'mpiprocs': 16}{'cputype': 'haswell'}{'walltime': '48:00:00'}
+#testfat.pbs:#PBS -l select=1:ncpus=56:mpiprocs=56:mem=1000GB -l walltime=24:00:00 -l place=excl
 
-                                st.text(command) 
-                                pbs_text += st.session_state.command + '\n' 
 
                             if DRMAA_avail:
                                 if inet.up():
@@ -421,108 +350,74 @@ def show_pbs(st, pbs_tab):
                                         if not st.session_state.programme:
                                             st.warning('No RP Code given')
                                             programme='TBD'
+
                                         #return 
-                                    
-                                        filename = '/tmp/' + st.session_state.dl_filename 
-                                        fp = open( filename, 'w')
-                                        if st.session_state.bash:
-                                            txt = ("#!/bin/bash\n")
-                                        else:
-                                            txt = ('## PBSwif autogenerated script\n')
-                                        txt = txt + '## PBS Script generated on ' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '\n'
-                                        txt = txt + "#PBS -P " + programme + '\n'
-                                        if email:
-                                                txt = txt + "#PBS -M " + email + '\n'
-                                                txt = txt + "#PBS -m " + ''.join(mails_on) + '\n'
-                                        select, Nodes, Cores, Memory, Queue, MPIprocs, GPUs = check_select(st)
-                                        txt = txt + "#PBS " + select + '\n'
-                                        txt = txt + "#PBS -q " + Queue + '\n'
-                                        if st.session_state.Vars:
-                                            txt = txt + "#PBS -V" + '\n'
-                                        if st.session_state.jobname:
-                                            txt = txt + "#PBS -N " + st.session_state.jobname + '\n'
+                    ############################  End form 
 
-                                        if st.session_state.Interactive:
-                                            txt = txt + "#PBS -I" + '\n'
-                                            if st.session_state.Vars: 
-                                                txt = txt + '#PBS -V ' + '\n'
-                                            if st.session_state.Xfwd:
-                                                txt = txt + '#PBS -X ' + '\n'
-                                            txt = txt + '#PBS -N ' + st.session_state.jobname + '\n'
-                                            txt = txt + '#PBS -q ' + st.session_state.Queue + '\n'
-                                            txt = '#PBS ' + select + '\n'
-                                        else:
-                                            if st.session_state.workdir:
-                                                txt = txt + 'cd ' + st.session_state.workdir + '\n'
-                                            if st.session_state.join:
-                                                txt = txt + '#PBS -j oe' + '\n'
+                    if 'dl_filename' in st.session_state.keys():
+                        if len(dl_file_contents)==0:
+                            print("Reading tmp jobfile")
 
 
-                                        txt = txt + "## Modules\n"
-                                        txt = txt + st.session_state.modules + '\n'
-                                        txt = txt + "## Command \n"
-                                        txt = txt + st.session_state.command + '\n'
-                                        txt = txt + "## End\n"
-                                        pbs_text += txt
+                        if st.download_button('Download PBS script to local disk ' + st.session_state.dl_filename,
+                                               dl_file_contents, file_name=st.session_state.dl_filename):
+                            st.info('Downloading file ' +  st.session_state.dl_filename)
+                    
+                
+                    creds = st.session_state.user + '@' + st.session_state.server 
+                    
+                    if st.session_state.user == "user":
+                        st.error("Please give a valid username instead of " + st.session_state.user)
+                    else:
+                        if st.session_state.qsub_ok:
+                                
+                            if ssh_button:
+                                
+                                filename='/tmp/' + st.session_state.dl_filename 
 
-                                        fp.write(txt)
-                                        fp.close()
+#                                fp = open(filename, 'w'); fp.write(dl_file_contents); fp.close()
+                                fp = open(filename, 'r')
+                                dl_file_contents=fp.read(); fp.close()
 
+                                st.warning("Copying job file via scp " + st.session_state.server)
+                                CMD = 'scp ' + filename + ' ' + creds + ':' + st.session_state.workdir                                    
+                                exitcode = run(CMD, capture_output=True, shell=True) 
 
-                                        creds = st.session_state.user + '@' + st.session_state.server 
-                                        
-                                        if st.session_state.user == "user":
-                                            st.error("Please give a valid username instead of " + st.session_state.user)
-                                        else:
-                                            if st.session_state.qsub_ok:
-                                                    
-                                                if ssh_button:
-                                                    
-
-                                                    st.warning("Submitting job via ssh " + st.session_state.server)
-                                                    CMD = 'scp ' + filename + ' ' + creds + ':' + st.session_state.workdir                                        
-                                                    exitcode = run(CMD,capture_output=True, shell=True) #, timeout=15.0, check=True)
-                                                    print("INFO: SCP command sent :", filename)
-
-                                                    if exitcode.returncode < 0:
-                                                        st.error("Could not copy file to server, timeout " + filename + exitcode.returncode)
-                                                        return
-                                                
-                                                    st.info('File ' + filename + ' copied to cluster ' + \
-                                                        st.session_state.workdir + '/' + st.session_state.dl_filename)
-
-                                                    print("INFO: SCP command sent :", 
-                                                                'scp ' + filename + ' ' + creds + ':' +
-                                                                st.session_state.workdir)
-                                                    
-                                                    qsub_out = run("ssh " + creds  + \
-                                                                ' qsub ' + st.session_state.workdir \
-                                                                + '/' + st.session_state.dl_filename, 
-                                                                capture_output=True, shell=True) #, timeout=15.0, check=True)                                            
-                                                    
-                                                    if qsub_out.returncode < 0:
-                                                        st.error("Timeout, Could not run qsub " + qsub_out.returncode)
-                                                        print("ERROR: Timeout, QSUB command not sent :")
-
-                                                    print("INFO: QSUB command sent :", ' qsub ' + 
-                                                        st.session_state.workdir \
-                                                        + '/' + st.session_state.dl_filename)
+                                if exitcode.returncode < 0:
+                                    st.error("Could not copy file to server, timeout " + filename + exitcode.returncode)
+                                    return
+                            
+                                st.info('File ' + filename + ' copied to cluster ' + \
+                                    st.session_state.workdir + '/' + st.session_state.dl_filename)
+                                
+                                qsub_out = run("ssh " + creds  + \
+                                            ' qsub ' + st.session_state.workdir \
+                                            + '/' + st.session_state.dl_filename, 
+                                            capture_output=True, shell=True)                                        
+                                
+                                if qsub_out.returncode < 0:
+                                    st.error("Timeout, Could not run qsub " + qsub_out.returncode)
+                                    print("ERROR: Timeout, qsub command failed to send")
+                                    return
+                                else:
+                                    print("INFO: qsub command sent :", ' qsub ' + 
+                                    st.session_state.workdir \
+                                    + '/' + st.session_state.dl_filename)
+                                    st.info('qsub command sent')
 
 
-                                                    if qsub_out.returncode == 0:
-                                                        jobid = qsub_out.stdout.decode()
-                                                        st.success('Job ' + str(jobid) + 'submitted')
+                                if qsub_out.returncode == 0:
+                                    jobid = qsub_out.stdout.decode()
+                                    st.success('Job ' + str(jobid) + 'submitted')
+                                    print("INFO: post qsub ", qsub_out.stdout.decode())
 
 
-                                                    os.remove(filename)
-                                            else:
-                                                    print("Qsub remote not active")
-                                                    st.error("Qsub from PBSwif not enabled")
 
-                    st.download_button('Download PBS script to local disk' + st.session_state.dl_filename, 
-                                    pbs_text,
-                                    file_name=st.session_state.dl_filename, 
-                                    use_container_width=True )
+                                #os.remove(filename)
+                        else:
+                                print("Qsub remote not active")
+                                st.error("Qsub from PBSwif not enabled")
+
 
 
 

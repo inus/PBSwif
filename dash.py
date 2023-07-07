@@ -70,10 +70,9 @@ def show_dash(st, dash):
           if x=='1m': return '1 Month'
           if x=='1y': return '1 Year'
           return x
-          print('Debug sb period',x )
 
     with dash:
-              
+                            
               period_d = { '1d': 2, '1w': 7, '1m':30, '1y':365, 'all': 0} #read at least 2 files
 
               col1, col2 = st.columns([1, 2])
@@ -92,15 +91,12 @@ def show_dash(st, dash):
 
               
               with st.spinner('Retrieving queue status'):
-                     ps = pl2.Path(LOGDIR)
-                     df = pl.DataFrame()
+                  ps = pl2.Path(LOGDIR)
+                  df = pl.DataFrame()
+                  files = sorted(list(ps.glob(FILEPATTERN)))
+                  s_files = files[ -period_d[st.session_state.graph_period]::]
 
-                     files = sorted(list(ps.glob(FILEPATTERN)))
-
-                     s_files = files[ -period_d[st.session_state.graph_period]::]
-
-
-                     for p in  s_files:
+                  for p in  s_files:
                             dfs = pl.read_csv(str(p),
                                           has_header=False,
                                           new_columns=cols,
@@ -109,6 +105,10 @@ def show_dash(st, dash):
                             
                             df = df.vstack(dfs)
 
+                  if len(df)==0:
+                            st.warning('No logs found in subdirectory \"log" ')
+                            return
+                  else:       
                      df=df.with_columns ( pl.col(cols[1::]).str.replace(r'\D+\=(\d*\.?\d*)', "$1")) 
                      df=df.with_columns ( pl.col(cols[1::]).str.replace(r'[\%]', "")) 
                      df=df.with_columns ( pl.col(cols[1::]).str.replace('', '00')) 
@@ -120,10 +120,6 @@ def show_dash(st, dash):
                             pl.col(cols_float).cast(pl.Float32) ]))
                      
                      df.with_columns(dtime = df['time'].dt.strftime('%Y-%m-%d %H:%M'))
-
-                     #print("DEBUG; before ", df.shape)
-                     #placeholder_1.write(files[0])
-
 
                      if  st.session_state.graph_period == '1m': #
                             every = '1h'

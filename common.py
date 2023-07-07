@@ -2,7 +2,7 @@
 import socket
 import streamlit as st
 
-DEFAULT_WALLTIME=48
+from sidebar import DEFAULT_WALLTIME
 
 #global jobs_retrieved 
 #jobs_retrieved  = False
@@ -39,9 +39,11 @@ def show_email_options(st):
 
 def check_select(st): 
 
-    Nodes, Cores, Memory, Queue, MPIprocs, GPUs, walltime = st.session_state.Nodes, \
-        st.session_state.Cores, st.session_state.Memory, st.session_state.Queue, \
-        st.session_state.MPIprocs, st.session_state.GPUs, st.session_state.walltime
+    Nodes, Cores, Memory, Queue, MPIprocs, GPUs, walltime = st.session_state.nodect, \
+        st.session_state.ncpus, st.session_state.mem, st.session_state.Queue, \
+        st.session_state.mpiprocs, st.session_state.ngpus, st.session_state.walltime
+
+    walltime = int(walltime[0:1])
 
     if Nodes == 1:
         if GPUs > 0:
@@ -100,8 +102,8 @@ def check_select(st):
         else:
             select = "-l select={}:ncpus={}:mem={}GB".format(Nodes,Cores,Memory)
     
-    if st.session_state.PlaceSelect != "none":
-        select = select + " -l place={}".format(st.session_state.PlaceSelect)
+    if st.session_state.place != "none":
+        select = select + " -l place={}".format(st.session_state.place)
 
     if st.session_state.walltime != DEFAULT_WALLTIME:
         select = select + " -l walltime=" + str(st.session_state.walltime) + ':' + str(st.session_state.walltime_m) 

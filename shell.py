@@ -43,14 +43,23 @@ def show_shell(st, shell):
          cmd_dict = {
                 'w':  'w',
                 'df':  'df -h',
-                'id':  "id " + user,
+                'id':  "id ",
                 'group':  'getent group | grep ' + user ,
                 "CHPC programmes":  "grep "  + user + " /home/userdb/programme_info.csv" ,
                 "blocked":   "grep "  + user + " /home/userdb/blockeduser",
                 #"allocations":   'cat /home/userdb/projects_status.csv ' + ' | grep ' +  st.session_state.user_rp,
                 'pbsnodes' : 'pbsnodes ',
                 }
-         return cmd_dict
+         admin_dict={
+                'id':  "id " + st.session_state.target_user ,
+                'group':  'getent group | grep ' +  st.session_state.target_user  ,
+                "CHPC programmes":  "grep "  +  st.session_state.target_user + " /home/userdb/programme_info.csv" ,
+                "blocked":   "grep " + st.session_state.target_user + " /home/userdb/blockeduser",
+         }
+         if st.session_state.admin:
+            return  admin_dict
+         else:
+            return cmd_dict
 
     with shell:
         if inet.up():
@@ -75,7 +84,7 @@ def show_shell(st, shell):
        
                         if st.session_state.user is not None and cmd_options(user) is not None:
 
-                            if st.form_submit_button( '**:green[' + user + '@' +
+                            if st.form_submit_button( '**:green[' + st.session_state.user + '@' +
                                                      st.session_state.server +  
                                                      ' $]** ' + 
                                                      cmd_dict[cmd] + ' ' + cmd_args, 

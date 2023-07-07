@@ -18,7 +18,7 @@ import plost
 
 LOGDIR='log/clusteruse'
 Ht=560 #PLOTHEIGHT
-FILEPATTERN='2023-*.log'
+FILEPATTERN='202*.log'
 
 '''
 	2023-06-06 00:05	 jobs_running=376	 jobs_queued=665	 jobs_held=0
@@ -97,13 +97,16 @@ def show_dash(st, dash):
                   s_files = files[ -period_d[st.session_state.graph_period]::]
 
                   for p in  s_files:
+                        try:
                             dfs = pl.read_csv(str(p),
                                           has_header=False,
                                           new_columns=cols,
                                           try_parse_dates=True,
                                           null_values = '' )
-                            
-                            df = df.vstack(dfs)
+                        except:
+                            print("ERROR reading csv file", p)
+                            continue    
+                        df = df.vstack(dfs)
 
                   if len(df)==0:
                             st.warning('No logs found in subdirectory \"log" ')
@@ -132,8 +135,9 @@ def show_dash(st, dash):
 
                      if every != '':
 
-                            
-                            df = df.with_columns(pl.col('time').set_sorted()).groupby_dynamic(
+#                            df = df.fill_null(0)
+                            try:
+                                df = df.with_columns(pl.col('time').set_sorted()).groupby_dynamic(
                                                                'time',
                                                                every=every,
                                                                check_sorted=False,
@@ -142,6 +146,8 @@ def show_dash(st, dash):
                                                           pl.all().exclude(
                                                                'time','dtime').mean()
                                                         )
+                            except pl.exceptions.ComputeError as p:
+                                    print("Polars exception", p)
                             
 
                      placeholder_1.write("From: " + str(df['time'][0]))

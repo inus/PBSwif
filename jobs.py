@@ -67,7 +67,10 @@ def show_jobs(st, status_tab):
                 except TimeoutError as t:
                     st.error("Qstat jobs via drmaa failed: " + str(t))
                     return pd.DataFrame({'Jobs' : []})            
-                return pd.DataFrame(jobs)
+
+                df =  json.loads(jobs.stdout.decode())
+                return pd.DataFrame(df)
+
 
 
         #if  get_user() == None: #"" and 
@@ -90,12 +93,13 @@ def show_jobs(st, status_tab):
              
             if DRMAA_avail:
                 qstat = get_drmaa_jobs(creds,CMD) 
+                return  qstat
+
             else:
                 if st.session_state.user != "" and not re.search ( '\s', st.session_state.user): 
                     qstat = get_ssh_jobs(creds, CMD)    
 
             if type(qstat) != int:
-                
                 if qstat.returncode == 0:                        
                     try:                    
                          df = json.loads(qstat.stdout.decode(), cls=LazyDecoder)

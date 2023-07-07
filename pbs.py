@@ -369,9 +369,9 @@ def show_pbs(st, pbs_tab):
                     if st.session_state.user == "user":
                         st.error("Please give a valid username instead of " + st.session_state.user)
                     else:
-                        if st.session_state.qsub_ok:
+                        if 'qsub' in st.session_state.keys()  or DRMAA_avail :
                                 
-                            if ssh_button:
+                            if 'ssh_button' in st.session_state.keys():
                                 
                                 filename='/tmp/' + st.session_state.dl_filename 
 

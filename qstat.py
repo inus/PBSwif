@@ -11,9 +11,7 @@ import inet
 from bokeh.plotting import figure, show
 from bokeh.palettes import Spectral8 
 import plost
-import pygal 
 
-from st_aggrid import AgGrid
 
 from pbs import DRMAA_avail, PBS_HOST, host
 SSH_TIMEOUT=15

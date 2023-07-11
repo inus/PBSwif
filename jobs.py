@@ -69,7 +69,11 @@ def show_jobs(st, status_tab):
                     return pd.DataFrame({'Jobs' : []})            
 
                 df =  json.loads(jobs.stdout.decode())
-                return pd.DataFrame(df)
+#                import pdb; pdb.set_trace()
+                if 'Jobs' in df.keys():
+                        return pd.DataFrame(df)
+                else:
+                    return pd.DataFrame({'Jobs' : []})            
 
 
 

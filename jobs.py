@@ -4,7 +4,7 @@ import pandas as pd
 import polars as pl 
 import re
 import streamlit as st
-from subprocess import run, TimeoutExpired, CalledProcessError
+from subprocess import run, TimeoutExpired, CalledProcessError, CompletedProcess
 import inet
 from pbs import DRMAA_avail
 
@@ -45,10 +45,10 @@ def show_jobs(st, status_tab):
                                 timeout=SSH_TIMEOUT, check=True)                     
                 except CalledProcessError as c:
                     st.error('Could not run SSH command, error' + str(c))
-                    return pd.DataFrame({'Jobs': 0}) 
+                    return pd.DataFrame({'Jobs': [0]}) 
             except TimeoutExpired as t:
                     st.error("Check username, ssh " + creds + " failed: " + str(t))
-                    return pd.DataFrame({'Jobs': 0}) 
+                    return pd.DataFrame({'Jobs': [0]}) 
 
             return jobs
 
@@ -99,7 +99,8 @@ def show_jobs(st, status_tab):
                 if st.session_state.user != "" and not re.search ( '\s', st.session_state.user): 
                     qstat = get_ssh_jobs(creds, CMD)    
 
-            if type(qstat) != int:
+            #if 'returncode' in qstat.keys(): 
+            if type(qstat)==CompletedProcess:
                 if qstat.returncode == 0:                        
                     try:                    
                          df = json.loads(qstat.stdout.decode(), cls=LazyDecoder)

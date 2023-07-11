@@ -71,7 +71,7 @@ dashboard
 Add commands on shell:
 
 id
-finger
+finger <- all login nodes (scp,login2,dtn,globus)?
 -
 Pull from users.chpc.ac.za (or cluster LDAP)
 - email address etc
@@ -90,4 +90,9 @@ Clean up normal/admin mode sidebar menu logic
 format dataframes for jobs and queue stats better
 format allocations data
 summarize/graphs
+
+--
+
+- gzip json logs (300M -> 11M )
+do logs when on cluster, else pull last day'S
 

@@ -1,13 +1,20 @@
 #qstat.py aka queue.py 
+import altair as alt
+
 import streamlit as st
 import json
 from subprocess import run, TimeoutExpired, CalledProcessError
 import pandas as pd
+import numpy as np 
 import re
 import inet
 from bokeh.plotting import figure, show
 from bokeh.palettes import Spectral8 
 import plost
+import pygal 
+
+from st_aggrid import AgGrid
+
 from pbs import DRMAA_avail, PBS_HOST, host
 SSH_TIMEOUT=15
 
@@ -16,8 +23,6 @@ def queue_graph(data):
 
     state_names = ['Transit', 'Queued', 'Held', 'Waiting', 'Running', 'Exiting', 'Begun' ]
     queues = list(data.index)
-    showq   = ['normal', 'smp', 'bigmem', 'gpu_1', 'gpu_2', 'gpu_3', 'gpu_4', 'large', 
-               'serial', 'seriallong', 'accelrys']
     states = {} 
     for q in queues:        
         state_count = [ int(x.split(':')[1]) for x in  data.state_count[q].split() ]
@@ -27,12 +32,15 @@ def queue_graph(data):
              'States': state_names,
              'Counts': states}
 
-    #df = pd.DataFrame(data, columns=['Queue', 'States', 'Counts'] )
-    df = pd.DataFrame.from_records(states) 
-    df.index=state_names
+    df = pd.DataFrame.from_records(data['Counts'], columns=queues, index=state_names) 
     df.reindex()
-    st.bar_chart(df) #, x=df, y=df)
-    st.write(df)
+    plot=[]
+    for q in queues: plot += [df[q]]
+    st.bar_chart(plot)
+    with st.expander("Queue data"):
+        st.table(plot)
+
+          
 
     
 def show_queue(st, queue):
@@ -55,6 +63,12 @@ def show_queue(st, queue):
 
     with queue:
 
+            #col1,col2=st.columns(2)
+            #with col1:
+            #    st.checkbox('Show queues with zero total jobs', key='showzero', )
+            #with col2:
+            #    st.checkbox('Show Resources', key='show_resources', )
+
             with st.spinner('Retrieving queue status'):
                 cmd = 'qstat -f -w -F json -f -Qa ' 
                 if PBS_HOST:
@@ -69,7 +83,6 @@ def show_queue(st, queue):
                         df = pd.DataFrame(df) 
                         df = pd.DataFrame(df.Queue)
                         df = pd.DataFrame.from_records(df.Queue, index=df.Queue.index)
-                        #st.dataframe(df)
                         queue_graph(df)
                     else:
                          st.warning("No network connection")
@@ -82,14 +95,19 @@ def show_queue(st, queue):
                             creds = st.session_state.user + '@' + st.session_state.server 
                             if inet.up():
                                     qstat = get_qstat(creds, cmd)
-                                    df = pd.DataFrame(json.loads(qstat.stdout.decode()))
-                                    df['date'] = df['timestamp'].apply(lambda x: \
-                                                pd.Timestamp(x, unit='s').strftime('%Y-%m-%d %H:%M:%S'))
-                                    
-                                    data = pd.DataFrame.from_records(df.Queue, index=df.Queue.index)
-                                    pd.concat([data, pd.DataFrame.from_records(df['Queue'])])
-                                    #st.write(data)
-                                    queue_graph(data)
+                                    if qstat is None:
+                                         st.error('No queue data')
+                                    else:
+
+                                        df = pd.DataFrame(json.loads(qstat.stdout.decode()))
+                                        df['date'] = df['timestamp'].apply(lambda x: \
+                                                    pd.Timestamp(x, unit='s').strftime('%Y-%m-%d %H:%M:%S'))
+                                        
+                                        data = pd.DataFrame.from_records(df.Queue, index=df.Queue.index)
+                                        pd.concat([data, pd.DataFrame.from_records(df['Queue'])])
+                                        #st.write(data)
+                                        pdf = pd.DataFrame(json.loads(qstat.stdout.decode()))
+                                        queue_graph(data)
                             else:
                                  st.warning("No network connection")
                         else:

@@ -1,21 +1,17 @@
 #qstat.py aka queue.py 
-import altair as alt
 
 import streamlit as st
 import json
 from subprocess import run, TimeoutExpired, CalledProcessError
 import pandas as pd
-import numpy as np 
 import re
 import inet
 from bokeh.plotting import figure, show
 from bokeh.palettes import Spectral8 
-import plost
 
 
-from pbs import DRMAA_avail, PBS_HOST, host
+from pbs import PBS_HOST
 SSH_TIMEOUT=15
-
 
 def queue_graph(data):
 
@@ -35,10 +31,6 @@ def queue_graph(data):
     plot=[]
     for q in queues: plot += [df[q]]
     st.bar_chart(plot)
-    with st.expander("Queue data"):
-        st.table(plot)
-
-          
 
     
 def show_queue(st, queue):
@@ -60,13 +52,6 @@ def show_queue(st, queue):
 
 
     with queue:
-
-            #col1,col2=st.columns(2)
-            #with col1:
-            #    st.checkbox('Show queues with zero total jobs', key='showzero', )
-            #with col2:
-            #    st.checkbox('Show Resources', key='show_resources', )
-
             with st.spinner('Retrieving queue status'):
                 cmd = 'qstat -f -w -F json -f -Qa ' 
                 if PBS_HOST:
@@ -77,9 +62,7 @@ def show_queue(st, queue):
                         except TimeoutError:
                              st.error('Timed out running qstat on cluster')
 
-                        df = json.loads(qstat.stdout.decode())
-                        df = pd.DataFrame(df) 
-                        df = pd.DataFrame(df.Queue)
+                        df = pd.DataFrame(json.loads(qstat.stdout.decode()))
                         df = pd.DataFrame.from_records(df.Queue, index=df.Queue.index)
                         queue_graph(df)
                     else:
@@ -103,9 +86,17 @@ def show_queue(st, queue):
                                         
                                         data = pd.DataFrame.from_records(df.Queue, index=df.Queue.index)
                                         pd.concat([data, pd.DataFrame.from_records(df['Queue'])])
-                                        #st.write(data)
-                                        pdf = pd.DataFrame(json.loads(qstat.stdout.decode()))
+                                        #pdf = pd.DataFrame(json.loads(qstat.stdout.decode()))
                                         queue_graph(data)
+                                        q_info = data[['Priority', 'queue_type', 'enabled',  'default_chunk','started' ]]
+                                        q_res = data[['resources_assigned', 'resources_max', 
+                                                      'resources_min', 'max_run_res', ]]
+                                        q_acl = data[['acl_group_enable', 'acl_groups', 'acl_users',]]
+
+                                        with st.expander("Queue info"): st.dataframe(q_info)
+                                        with st.expander("Queue resources"): st.dataframe(q_res)
+                                        with st.expander("Queue ACL "): st.dataframe(q_acl)
+                                        
                             else:
                                  st.warning("No network connection")
                         else:

@@ -11,9 +11,9 @@ from pbs import DRMAA_avail
 
 CLUSTERHOST='scp.chpc.ac.za'
 
-reread_jobs=False
-def refresh_jobs():
-     reread_jobs=True
+#reread_jobs=False
+#def refresh_jobs():
+#     reread_jobs=True
      
 
 def show_sidebar(st):
@@ -42,7 +42,7 @@ def show_sidebar(st):
                          pass
                         #cache_jobs = st.checkbox('Cache job data', key='cache_jobs',value=False)
                     with col1R:
-                        qsub_remote = st.checkbox('Enable qsub', key='qsub_ok',value=False)
+                        qsub_remote = st.checkbox('Enable qsub', key='qsub_OK',value=False)
         else:
                     #st.info("Running \"whoami\" to test ssh login")
                     who = run('whoami', capture_output=True, shell=True, check=True, timeout=5,)
@@ -55,8 +55,8 @@ def show_sidebar(st):
                 #with col1:
                 admin_mode = st.checkbox('Admin', key='admin',value=False, help='Enable administrator mode')
                 target_user = st.text_input('Other username', key='target_user', 
-                                                help="Other username\'s jobs if in admin mode",
-                                                on_change=refresh_jobs)
+                                                help="Other username\'s jobs if in admin mode",)
+                                                #on_change=refresh_jobs)
                 #with col2:
                 #all_jobs = st.checkbox('All user jobs', key='all_jobs',value=False, help='Get jobs from all')
                             
@@ -84,13 +84,13 @@ def show_sidebar(st):
                 timecol1, timecol2 = st.columns([1,1])
                 with timecol1:
                     walltime = st.text_input('Walltime hh:mm:ss', value=DEFAULT_WALLTIME, key='walltime' )
-                with timecol2:
-                     pass
+                #with timecol2:
+                #     pass
                     #walltime_m = st.number_input('Walltime min', value=0, key='walltime_m' )
 
-                Queue = st.selectbox("Queue",  ['serial','seriallong', 'smp','normal', 'large','xlarge','bigmem',
+                Queue = st.selectbox("Queue", ['serial','seriallong', 'smp','normal', 'large','xlarge','bigmem',
                                                 'vis','test','gpu_1','gpu_2','gpu_3','gpu_4','gpu_long','express'], index=0,
-                                                key='Queue')
+                                                key='queue')
                 st.divider()
 
         #if not DRMAA_avail:

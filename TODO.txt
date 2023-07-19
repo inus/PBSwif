@@ -96,3 +96,41 @@ summarize/graphs
 - gzip json logs (300M -> 11M )
 do logs when on cluster, else pull last day'S
 
+--
+2023-07-12
+
+fix bar graphs, try altair charts
+
+
+do time plots for queue, pbsnodes
+
+
+admin mode: user summary
+    - check user logins (last, finger on all 4 nodes)
+    - if blocked
+    - groups, programmes, last jobs 
+
+GPU logs... ?
+- tie user to job on GPU nodes
+
+
+--
+
+PBS logic options in scripting?
+
+
+--2023-07-19
+
+ - read dyn queue values to use on job params check
+ - LAPD vals? 
+
+ - check cache timouts on data collection
+
+ - queue/pbsnodes time graphs 
+ - jump to job anchor? hyperlink in job df
+
+ ... walltime detail to be fixed
+
+
+
+

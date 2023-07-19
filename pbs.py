@@ -14,6 +14,7 @@ import inet
 
 from common import show_info, check_select
 from shell import run_cluster_cmd
+from sidebar import DEFAULT_WALLTIME
 
 PBS_HOSTS = ['login1', 'login2', 'globus.chpc.ac.za']
 host = socket.gethostname()
@@ -82,6 +83,25 @@ def show_pbs(st, pbs_tab):
                 show_rp_data()
             
 
+        def copy_pbs_file(file):
+            filename='/tmp/' + file
+            fp = open(filename, 'r')
+            dl_file_contents=fp.read(); fp.close()
+            #creds = st.session_state.user + '@' + st.session_state.server 
+            st.info("Copying job file to " + st.session_state.workdir)
+            CMD = 'cp ' + filename + ' '  + "${HOME}/" +  st.session_state.workdir + '/'                                    
+            print("DEBUG copy  :", CMD)
+            exitcode = run(CMD, capture_output=True, shell=True) 
+
+            if exitcode.returncode < 0:
+                st.error("Could not copy file to workdir, timeout " + filename + exitcode.returncode)
+            else:   
+                st.info('File ' + filename + ' copied to workdir ' + \
+                        st.session_state.workdir + '/' + file)
+            print("DEBUG : " , exitcode.stdout.decode())
+            st.info(exitcode.stdout.decode())
+
+
         def send_pbs_file(file):
             filename='/tmp/' + file
             fp = open(filename, 'r')
@@ -100,10 +120,18 @@ def show_pbs(st, pbs_tab):
 
         def submit_pbs_file(file):
             creds = st.session_state.user + '@' + st.session_state.server 
-            qsub_out = run("ssh " + creds  + \
+
+            if  not DRMAA_avail:
+                    qsub_out = run("ssh " + creds  + \
                         ' qsub ' + st.session_state.workdir \
-                        + '/' + file, #st.session_state.dl_filename, 
+                        + '/' + file, 
                         capture_output=True, shell=True)                                        
+            else:
+                    qsub_out = run( \
+                        ' qsub ' + "${HOME}/" + st.session_state.workdir \
+                        + '/' + file, 
+                        capture_output=True, shell=True)                                        
+
             
             if qsub_out.returncode < 0:
                 st.error("Timeout, Could not run qsub " + qsub_out.returncode)
@@ -171,8 +199,9 @@ def show_pbs(st, pbs_tab):
             cmd['Select']  = '#PBS ' + selstr
             cmd['modules'] = st.session_state.modules
             cmd['command'] = st.session_state.command
-            #save_dl_file(cmd)
-            return cmd, qs_cmd
+            qs_cmd['command'] = st.session_state.command
+            save_dl_file(cmd)
+            return cmd, qs_cmd # returns both, latter for inline qsub, i.e. without #PBS prefix
 
         def setup_rp():
             leftcol1, centrecol1, rightcol1 = st.columns([1,1,1])
@@ -257,24 +286,51 @@ def show_pbs(st, pbs_tab):
                                 value=st.session_state.jobname + '.pbs')         
 
         def submit_cli_qsub():
+
+            if not ( 'pbs' in locals() or 'pbs' in globals() ):
                 pbs = drmaa.Session()
                 try:
                     pbs.initialize()
                 except:
-                    st.error("Can not initialize PBS-DRMAA")
-                    return
+                    st.warning("Can not initialize PBS-DRMAA")
+                    #return
+            else:
+                print("Debug: pbs not none, not initialized")
+
+            if True:
+                cmds = get_cli_cmds()
+
+                select = cmds['Select']
+
+                if st.session_state.place != "none":
+                    select = select + " -l place={}".format(st.session_state.place)
+
+                if st.session_state.walltime != DEFAULT_WALLTIME:
+                    select = select + " -l walltime=" + str(st.session_state.walltime) 
+
                 jt = pbs.createJobTemplate()
-                jt.remoteCommand = st.session_state.command
-                jt.jobName = jobname
-                jt.workingDirectory = workdir
-                jt.nativeSpecification = select + " -P " + programme 
-                jt.email = email 
+
+                jt.remoteCommand = cmds['command'] #st.session_state.command
+                jt.jobName = st.session_state.jobname
+                jt.workingDirectory = st.session_state.workdir
+
+                if st.session_state.user_rp != "":
+                    jt.nativeSpecification = select + " -P " + st.session_state.user_rp 
+
+                if st.session_state.email != "":
+                    jt.email = st.session_state.email 
+
+                print("DEBUG cli: ", jt)
 
                 try:
                     jobid = pbs.runJob(jt)
                     st.success('Job has been submitted to PBS, job id **[' + jobid + ']**')
                 except:
                     st.error( 'PBS job not submitted. Check if your RP programme code is valid')
+
+        def get_cli_cmds():
+            x,cmd = read_form()
+            return cmd
 
         def get_qsub_cmds():
             cmd, x = read_form()
@@ -332,14 +388,25 @@ def show_pbs(st, pbs_tab):
                     if st.session_state.user == "user":
                         st.error("Please give a valid username instead of " + st.session_state.user)
                     else:
-                        if st.session_state['qsub_OK']:
-                                if subm_ssh:
-                                    send_pbs_file(st.session_state.dl_filename)
-                                    submit_pbs_file(st.session_state.dl_filename)
-                                    #os.remove(filename)
-                        else:
-                            print("Qsub remote not active")
-                            st.error("Qsub from PBSwif not enabled")
+                        if 'qsub_OK' in st.session_state.keys():
+                                if st.session_state['qsub_OK']:
+                                        if subm_ssh:
+                                            send_pbs_file(st.session_state.dl_filename)
+                                            submit_pbs_file(st.session_state.dl_filename)
+                                            print("DEBUG after submit ssh")
+                                            #os.remove('/tmp/' + st.session_state.dl_filename)
+                                else:
+                                    print("Qsub remote not active")
+                                    st.error("Qsub from PBSwif not enabled")
+
+                        if 'subm_drmaa' in st.session_state.keys():
+                            if st.session_state['subm_drmaa']:
+                                copy_pbs_file(st.session_state.dl_filename)
+                                submit_pbs_file(st.session_state.dl_filename)
+                                print("DEBUG after submit drmaa")
+                            #os.remove('/tmp/' + st.session_state.dl_filename)
+
+
 
             show_info()
 

@@ -132,5 +132,18 @@ PBS logic options in scripting?
  ... walltime detail to be fixed
 
 
+ --- add to shell: search for modules!
+
+ --
+ maybe fewer tabs/some performance checks in event loop?
+
+ -- open pbs form on tab
+
+ -- test framework
+
+ -- adapt for slurm
+ 
+
+
 
 

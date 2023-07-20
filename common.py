@@ -5,6 +5,16 @@ import streamlit as st
 from sidebar import DEFAULT_WALLTIME
 from qtable import table_md
 
+copy_button='<div><style> button {-webkit-text-size-adjust: 100%; tab-size: 4;\
+        --tw-text-opacity: 0.7;list-style-type: decimal;box-sizing: border-box;border-radius: 5px;\
+        border: 1px solid grey;font-size: 100%;margin: 0;padding: 0;-webkit-appearance: button;\
+        background-color: initial;position: relative;top: 0rem;right: 0rem;\
+        margin-left:auto;display: flex;height: 3rem;width: 3rem;cursor: pointer;\
+        align-items: center;}</style><button halign="right" class="button" type="button"\
+                        data-copy-state="copy"><span>&#128203;Copy</span></button></div>'            
+#    st.markdown(href, unsafe_allow_html=True)
+
+
 def show_info():
   with st.expander("Show/hide CHPC Lengau PBS queue rules", expanded=False):
     st.markdown(table_md)

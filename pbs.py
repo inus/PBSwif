@@ -12,7 +12,7 @@ from subprocess import run, TimeoutExpired
 import os,socket
 import inet
 
-from common import show_info, check_select
+from common import show_info, check_select, copy_button
 from shell import run_cluster_cmd
 from sidebar import DEFAULT_WALLTIME
 
@@ -54,7 +54,7 @@ def show_pbs(st, pbs_tab):
         @st.cache_data(persist="disk")
         def get_rp_list(): # get list of matching programmes for user
             op=run_cluster_cmd(st.session_state.user + '@' + st.session_state.server,
-                {'rp': 'grep ischeepers /home/userdb/programme_info.csv'},'rp','') # fake cmd dict            
+                {'rp': 'grep ' + st.session_state.user + ' /home/userdb/programme_info.csv'},'rp','') # fake cmd dict            
             pgms = []
             opl = op.splitlines()
             for line in range(len(opl)):
@@ -140,7 +140,7 @@ def show_pbs(st, pbs_tab):
             else:
                 print("INFO: qsub command sent :", ' qsub ' + 
                 st.session_state.workdir \
-                + '/' + file ) #st.session_state.dl_filename)
+                + '/' + file ) 
                 st.info('qsub command sent')
             if qsub_out.returncode == 0:
                 jobid = qsub_out.stdout.decode()
@@ -151,13 +151,12 @@ def show_pbs(st, pbs_tab):
         def save_dl_file(cmd):
             dl_file_contents=''
             for k in cmd.keys():
-                #st.text(cmd[k]) 
                 dl_file_contents += cmd[k] + '\n'
             fname='/tmp/' + st.session_state.jobname + '.pbs'
 
             fp = open(fname, 'w')
             fp.write(dl_file_contents); fp.close()
-            st.info('File saved to ' + fname )
+            #st.info('File saved to ' + fname )
 
 
         def read_form():
@@ -297,36 +296,73 @@ def show_pbs(st, pbs_tab):
             else:
                 print("Debug: pbs not none, not initialized")
 
-            if True:
-                cmds = get_cli_cmds()
+            cmds = get_cli_cmds()
+            select = cmds['Select']
 
-                select = cmds['Select']
+            if st.session_state.place != "none":
+                select = select + " -l place={}".format(st.session_state.place)
 
-                if st.session_state.place != "none":
-                    select = select + " -l place={}".format(st.session_state.place)
+            if st.session_state.walltime != DEFAULT_WALLTIME:
+                select = select + " -l walltime=" + str(st.session_state.walltime) 
 
-                if st.session_state.walltime != DEFAULT_WALLTIME:
-                    select = select + " -l walltime=" + str(st.session_state.walltime) 
+            jt = pbs.createJobTemplate()
 
-                jt = pbs.createJobTemplate()
+            jt.remoteCommand = cmds['command']
+            jt.jobName = st.session_state.jobname
+            jt.workingDirectory = st.session_state.workdir
 
-                jt.remoteCommand = cmds['command'] #st.session_state.command
-                jt.jobName = st.session_state.jobname
-                jt.workingDirectory = st.session_state.workdir
+            if st.session_state.user_rp != "":
+                jt.nativeSpecification = select + " -P " + st.session_state.user_rp 
+            else:
+                st.error("Can not run without a programme code")
+                return
 
-                if st.session_state.user_rp != "":
-                    jt.nativeSpecification = select + " -P " + st.session_state.user_rp 
+            if st.session_state.email != "":
+                jt.email = st.session_state.email 
 
-                if st.session_state.email != "":
-                    jt.email = st.session_state.email 
+            try:
+                jobid = pbs.runJob(jt)
+                st.success('Job has been submitted to PBS, job id **[' + jobid + ']**')
+            except:
+                st.error( 'PBS job not submitted. Check if your RP programme code is valid')
 
-                print("DEBUG cli: ", jt)
 
-                try:
-                    jobid = pbs.runJob(jt)
-                    st.success('Job has been submitted to PBS, job id **[' + jobid + ']**')
-                except:
-                    st.error( 'PBS job not submitted. Check if your RP programme code is valid')
+        def submit_cli_qsub_ssh():
+
+            cmds = get_cli_cmds()
+            select = cmds['Select']
+            if st.session_state.place != "none":
+                select += " -l place={}".format(st.session_state.place)
+            if st.session_state.walltime != DEFAULT_WALLTIME:
+                select += " -l walltime=" + str(st.session_state.walltime) 
+            if st.session_state.queue != "":
+                select += " -q " + st.session_state.queue
+            if st.session_state.user_rp != "":
+                select += " -P " + st.session_state.user_rp 
+            else:
+                st.error("Can not run without a programme code")
+                return
+            if st.session_state.email != "":
+                select += " -m " + st.session_state.email 
+            if st.session_state.command != "":
+                select += " -- " + st.session_state.command
+
+            try:                    
+                creds = st.session_state.user + '@' + st.session_state.server 
+                print("DEBUG ", select )
+                qsub_out = run("ssh -q " + creds  + \
+                        ' qsub ' + select, 
+                        capture_output=True, shell=True)   
+                if qsub_out.returncode==0:                   
+                    jobid = qsub_out.stdout.decode()
+                    st.success('Qsub submitted to PBS, job id **[' + jobid + ']**')
+                else:
+                    st.write(qsub_out.stderr.decode())
+                #print("DEBUG ", qsub_out.returncode )
+
+            except:
+                st.error( 'Qsub command not submitted')
+
 
         def get_cli_cmds():
             x,cmd = read_form()
@@ -338,8 +374,20 @@ def show_pbs(st, pbs_tab):
 
         def show_preview():
             cmd = get_qsub_cmds()
+            s=''
             for k in cmd.keys():
-                st.text(cmd[k])
+                s += cmd[k] + '\n'                
+            st.code(s)
+
+
+        def show_cli_preview():
+            cmd = get_cli_cmds()
+            s='qsub '
+            cmd['command'] = " -- " + cmd['command'] 
+            for k in cmd.keys():
+                s+= ' ' + cmd[k]
+            st.code(s)
+
 
         ############################################################################################
         with pbs_tab: 
@@ -350,29 +398,39 @@ def show_pbs(st, pbs_tab):
                     with st.form(key='pbs_form'):
                             setup_form()
                             #User_RPs = get_rp_list()                    
-                            left1, centre1, right1 = st.columns([1,1,1])                    
+                            left1, centre1, centre2, right1 = st.columns(4)                    
                             with left1:
                                 preview = st.form_submit_button('Preview PBS script')
+
                             with centre1:
+                                preview_cli = st.form_submit_button('Preview qsub')
+
+
+                            with centre2:
                                 if inet.up():
-                                    if DRMAA_avail:
-                                        subm_cli  = st.form_submit_button('Submit one-line qsub command')
+                                    if st.session_state.modules == "" and st.session_state.command != "":
+                                        subm_cli  = st.form_submit_button('Submit qsub command')
                                         if subm_cli:                                    
-                                            submit_cli_qsub()
+                                            if DRMAA_avail:
+                                                submit_cli_qsub()
+                                            else:
+                                                submit_cli_qsub_ssh()
 
                                     with right1:
                                         if DRMAA_avail:
-                                            subm_drmaa  = st.form_submit_button('Submit job script via DRMAA')
+                                            subm_drmaa  = st.form_submit_button('Submit DRMAA')
                                         else:
-                                            subm_ssh  = st.form_submit_button('Submit job script via SSH',)
-
+                                            subm_ssh  = st.form_submit_button('Submit script',)
 
                             if preview: 
                                 show_preview()
-                                if 'programme' not in st.session_state.keys():
-                                    st.error("The allocated CHPC Research Programme code is required to submit jobs")
-                                if not st.session_state.email:
-                                    st.warning("No email address given, notification mail directive omitted")
+                            if preview_cli:  
+                                show_cli_preview()
+                            if 'programme' not in st.session_state.keys():
+                                st.error("The allocated CHPC Research Programme code is required to submit jobs")
+                            if not st.session_state.email:
+                                st.warning("No email address given, notification mail directive omitted")
+
 
                     ############################  End form 
 
@@ -394,17 +452,15 @@ def show_pbs(st, pbs_tab):
                                             send_pbs_file(st.session_state.dl_filename)
                                             submit_pbs_file(st.session_state.dl_filename)
                                             print("DEBUG after submit ssh")
-                                            #os.remove('/tmp/' + st.session_state.dl_filename)
+                                            os.remove('/tmp/' + st.session_state.dl_filename)
                                 else:
-                                    print("Qsub remote not active")
                                     st.error("Qsub from PBSwif not enabled")
 
                         if 'subm_drmaa' in st.session_state.keys():
                             if st.session_state['subm_drmaa']:
                                 copy_pbs_file(st.session_state.dl_filename)
                                 submit_pbs_file(st.session_state.dl_filename)
-                                print("DEBUG after submit drmaa")
-                            #os.remove('/tmp/' + st.session_state.dl_filename)
+                            os.remove('/tmp/' + st.session_state.dl_filename)
 
 
 

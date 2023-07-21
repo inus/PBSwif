@@ -63,7 +63,6 @@ num_cols =['jobs_running', 'jobs_queued', 'jobs_held', 'jobs_exiting',
 def show_dash(st, dash):
     
     def redraw():
-          print('Redrawing selectbox') # st.session_state.graph_period)
     def sb_period(x):
           if x=='1d': return '1 Day'
           if x=='1w': return '1 Week'

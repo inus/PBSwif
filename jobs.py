@@ -71,11 +71,17 @@ def show_jobs(st, status_tab):
 
                 #import pdb; pdb.set_trace()
                 #while 
+                dd = jobs.stdout.decode()
+                dd=re.sub('\"COMP_WORDBREAKS\".*+\n', '', dd)
+                dd=re.sub('\"CONDA_PROMPT_MODIFIER\".*+\n', '', dd)
+                dd=re.sub('\\\\','',dd)
+
                 try:
-                    df =  json.loads(jobs.stdout.decode())
+                    df =  json.loads(dd)
                 except Exception as e:
-                    print("Error in json.loads at ", e, '>>', df[idx_to_replace], '<<') # line )
-                    df = fix_json(jobs.stdout.decode())
+                    print("Error in json.loads at ", e, '>>', dd[idx_to_replace], '<<') # line )
+                    st.error('Can not read qstat json output' + e )
+                    return
 
                 if 'Jobs' in df.keys():
                         return pd.DataFrame(df)

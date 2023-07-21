@@ -21,6 +21,7 @@ class LazyDecoder(json.JSONDecoder):
         return super().decode(s, **kwargs)
 
 
+
 def show_jobs(st, status_tab):  
 
     def  get_user():
@@ -68,8 +69,14 @@ def show_jobs(st, status_tab):
                     st.error("Qstat jobs via drmaa failed: " + str(t))
                     return pd.DataFrame({'Jobs' : []})            
 
-                df =  json.loads(jobs.stdout.decode())
-#                import pdb; pdb.set_trace()
+                #import pdb; pdb.set_trace()
+                #while 
+                try:
+                    df =  json.loads(jobs.stdout.decode())
+                except Exception as e:
+                    print("Error in json.loads at ", e, '>>', df[idx_to_replace], '<<') # line )
+                    df = fix_json(jobs.stdout.decode())
+
                 if 'Jobs' in df.keys():
                         return pd.DataFrame(df)
                 else:
@@ -105,14 +112,19 @@ def show_jobs(st, status_tab):
 
             #if 'returncode' in qstat.keys(): 
             if type(qstat)==CompletedProcess:
-                if qstat.returncode == 0:                        
-                    try:                    
-                         df = json.loads(qstat.stdout.decode(), cls=LazyDecoder)
-                    except: 
-                         st.error("Error reading json ")
-                         return pd.DataFrame() 
+                if qstat.returncode == 0:
+                    dd  = qstat.stdout.decode()
+                    dd=re.sub('\"COMP_WORDBREAKS\".*+\n', '', dd)
+                    dd=re.sub('\"CONDA_PROMPT_MODIFIER\".*+\n', '', dd)
+                    dd=re.sub('\\\\','',dd)
+                    try:
+                        df=json.loads(dd)
+                    except Exception as e:
+                        idx = int(str(e).split(' ')[-1].replace(')', ''))                   
+                        print("Error in json.loads at ", e, dd[idx-20:idx+20])
+                        
                     if 'Jobs' in df.keys():
-                        return pd.DataFrame(df) ############<<<<<<<<<<<<<<<<<<
+                        return pd.DataFrame(df) 
                     else:
                         df['Jobs']={}
                         return pd.DataFrame(df)

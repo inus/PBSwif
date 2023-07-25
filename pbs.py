@@ -11,6 +11,7 @@ import streamlit as st
 from subprocess import run, TimeoutExpired
 import os,socket
 import inet
+import tempfile
 
 from common import show_info, check_select, copy_button
 from shell import run_cluster_cmd
@@ -152,10 +153,10 @@ def show_pbs(st, pbs_tab):
             dl_file_contents=''
             for k in cmd.keys():
                 dl_file_contents += cmd[k] + '\n'
-            fname='/tmp/' + st.session_state.jobname + '.pbs'
-
-            fp = open(fname, 'w')
-            fp.write(dl_file_contents); fp.close()
+            #fname='/tmp/' + st.session_state.jobname + '.pbs'
+            with tempfile.NamedTemporaryFile(mode='w', delete=False) as fp:
+                fp.write(dl_file_contents); 
+            #fp.close()
             #st.info('File saved to ' + fname )
 
 

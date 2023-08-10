@@ -1,4 +1,6 @@
 #pbs.py
+SSH_TIMEOUT=15
+
 try:
     import drmaa
     DRMAA_avail = True
@@ -26,20 +28,25 @@ User_RPs = []
 def show_pbs(st, pbs_tab):
 
         PBS_dict = {
-            'bash': '#!/bin/bash', 'programme': 'P', 
-            'email': 'M', 'jobname': 'N', 'queue': 'q',  
-            'error': 'e', 'out': 'o', 'join': 'j oe',  
-            'Interactive' : 'I', 'Xfwd': 'X', 'Vars': 'V',  }
+            'bash': '#!/bin/bash', 'programme': 'P',
+            'email': 'M', 'jobname': 'N', 'queue': 'q',
+            'error': 'e', 'out': 'o', 'join': 'j oe',
+            'Interactive' : 'I', 'Xfwd': 'X', 'Vars': 'V',}
         
         dl_file_contents=''
 
         @st.cache_data(persist="disk")
         def get_rp_detail(pgms):
             prm = '|'.join(pgms)
-            op=run_cluster_cmd(st.session_state.user + '@' + st.session_state.server,
-                {'vrp': "cat /home/userdb/projects_status.csv | grep -E \'" + prm + "\'" },'vrp','')        
-            if op is not None:
-                lines = op.splitlines()                
+
+            cmd = "cat /home/userdb/projects_status.csv | grep -E \'" + prm + "\'"
+            if not DRMAA_avail:
+                cmd =  "ssh " + st.session_state.user + '@' + st.session_state.server + ' ' +cmd
+            
+            op = run(cmd, capture_output=True, shell=True, timeout=SSH_TIMEOUT, check=True)
+
+            if op.stdout is not None:
+                lines = op.stdout.decode().splitlines()                
                 rp_list=[]
                 rp_list += [ l.split(',') for l in lines]
                 pgm_dict = {}
@@ -54,10 +61,20 @@ def show_pbs(st, pbs_tab):
 
         @st.cache_data(persist="disk")
         def get_rp_list(): # get list of matching programmes for user
-            op=run_cluster_cmd(st.session_state.user + '@' + st.session_state.server,
-                {'rp': 'grep ' + st.session_state.user + ' /home/userdb/programme_info.csv'},'rp','') # fake cmd dict            
+
+            
+#            op=run_cluster_cmd(st.session_state.user + '@' + st.session_state.server,
+#                {'rp': 'grep ' + st.session_state.user + ' /home/userdb/programme_info.csv'},'rp','') # fake cmd dict            
+
+            cmd = 'grep ' + st.session_state.user.rstrip() + ' /home/userdb/programme_info.csv' 
+            if not DRMAA_avail:
+                cmd = 'ssh ' + st.session_state.user + '@' + st.session_state.server + ' ' + cmd 
+#            else:
+#            op = run( 'grep ' + st.session_state.user + ' /home/userdb/programme_info.csv',
+#            import pdb; pdb.set_trace()
+            op = run(cmd, capture_output=True, shell=True, timeout=SSH_TIMEOUT, check=True)
             pgms = []
-            opl = op.splitlines()
+            opl = op.stdout.decode().splitlines()
             for line in range(len(opl)):
                 word = opl[line].split(',')[0]
                 pgms.append(word)

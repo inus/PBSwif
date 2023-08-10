@@ -10,7 +10,7 @@ from pbs import DRMAA_avail
 SSH_TIMEOUT=15
 
 
-def run_cluster_cmd(creds, cmd_dict,cmd, args):
+def run_cluster_cmd(creds, cmd_dict, cmd, args):
      
     try:
         try:
@@ -49,6 +49,9 @@ def show_shell(st, shell):
                 "blocked":   "grep "  + user + " /home/userdb/blockeduser",
                 #"allocations":   'cat /home/userdb/projects_status.csv ' + ' | grep ' +  st.session_state.user_rp,
                 'pbsnodes' : 'pbsnodes ',
+                #'rp' : "grep " + user + ""
+                #'rp': "cat /home/userdb/projects_status.with_gpu.csv | grep -E \'" + prm + "\'" },'vrp','')        
+
                 }
          admin_dict={
                 'id':  "id " + st.session_state.target_user ,

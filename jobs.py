@@ -69,18 +69,19 @@ def show_jobs(st, status_tab):
                     st.error("Qstat jobs via drmaa failed: " + str(t))
                     return pd.DataFrame({'Jobs' : []})            
 
-                #import pdb; pdb.set_trace()
-                #while 
                 dd = jobs.stdout.decode()
                 dd=re.sub('\"COMP_WORDBREAKS\".*+\n', '', dd)
                 dd=re.sub('\"CONDA_PROMPT_MODIFIER\".*+\n', '', dd)
                 dd=re.sub('\\\\','',dd)
+                dd=re.sub('\"\$\@\"','',dd)
 
                 try:
                     df =  json.loads(dd)
                 except Exception as e:
-                    print("Error in json.loads at ", e, '>>', dd[idx_to_replace], '<<') # line )
-                    st.error('Can not read qstat json output' + e )
+                    print("Error in json.loads at ", e, '>>', '<<') # line )
+                    print("dd[e.position]", '>>', dd[e.pos],  '<<') # line )
+                    print("Chars: 10 before & after ", '>>', dd[e.pos-10:e.pos+15],  '<<') # line )
+                    st.error('Can not read qstat json output: '  +  '>>' + dd[e.pos] + '<< ... '  +  dd[e.pos-8:e.pos+12] )
                     return
 
                 if 'Jobs' in df.keys():
@@ -149,7 +150,9 @@ def show_jobs(st, status_tab):
                 st.warning("Empty ssh username")
                 return
 
-            if 'Jobs' in df.keys():    
+            #import pdb; pdb.set_trace()
+            if df is not None:
+              if 'Jobs' in df.keys():    
                 if len(df['Jobs'])!=0:
                     if get_user() == None: 
                             st.subheader('Showing ' + str(len(df['Jobs'])) + ' jobs for all users')       
@@ -159,7 +162,7 @@ def show_jobs(st, status_tab):
                 else:
                      st.write('No jobs found') 
 
-            else:
+              else:
                     if st.session_state.target_user:
                        st.info("No recent PBS jobs for user **" + st.session_state.target_user + "**")
                     else:

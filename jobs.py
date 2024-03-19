@@ -124,17 +124,20 @@ def show_jobs(st, status_tab):
                     dd=re.sub('\"COMP_WORDBREAKS\".*+\n', '', dd)
                     dd=re.sub('\"CONDA_PROMPT_MODIFIER\".*+\n', '', dd)
                     dd=re.sub('\\\\','',dd)
+                    dd=re.sub('\"\$\@\"','',dd)
+
                     try:
                         df=json.loads(dd)
                     except Exception as e:
                         idx = int(str(e).split(' ')[-1].replace(')', ''))                   
                         print("Error in json.loads at ", e, dd[idx-20:idx+20])
+                        st.error("Error in json.loads at :"  + dd[idx] + ': ' )
                         
-                    if 'Jobs' in df.keys():
-                        return pd.DataFrame(df) 
-                    else:
-                        df['Jobs']={}
-                        return pd.DataFrame(df)
+                    if ( 'df' in locals() or 'df' in globals() ):
+                        if 'Jobs' in df.keys():
+                          return pd.DataFrame(df) 
+                    df={}
+                    return pd.DataFrame(df)
             else:
                 st.error("Error reading job stats")
                 return pd.DataFrame()

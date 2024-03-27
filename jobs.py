@@ -161,7 +161,51 @@ def show_jobs(st, status_tab):
                             st.subheader('Showing ' + str(len(df['Jobs'])) + ' jobs for all users')       
                     else:
                             st.subheader('Showing ' + str(len(df['Jobs'])) + ' jobs for ' + get_user())
-                    st.dataframe(df['Jobs'])
+                    
+                    #Xdf = pd.DataFrame(df['Jobs']) #[["Job_Name", "queue", "Job_Owner", "etime", "comment"]]
+                    #Ydf = Xdf[["Job_Name", "queue", "Job_Owner", "etime", "comment"]]
+
+                    #Tdf=pd.DataFrame(df['Jobs'], index=df.index)
+                    #Zdf=pd.DataFrame(pd.json_normalize(df['Jobs']))
+                    Zdf=pd.DataFrame.from_records(df.Jobs, index=df.index)
+                    Xdf=pd.DataFrame( Zdf, index=df.index,
+                            columns=['Job_Name', "queue", "Job_Owner", "project",
+                                     'job_state', "stime", "mtime", "Exit_status", 
+                                     "Submit_arguments",
+                                     "Resource_List",
+                                     'resources_used', 
+                                     "comment",  
+                                     'Error_Path', 'Output_Path'])
+                    
+                    cm_str = '.cm.cluster' #Zdf.iloc[0].Job_Owner
+                    #host_str =  re.sub('^.*\@','@',full_str)
+                    #re.sub('\@.*','',x)
+                    Xdf.replace(to_replace=r'^.*\.cm\.cluster\:',value='', inplace=True, regex=True)
+
+                    Xdf.replace(to_replace=r'\@.*\.cm.*$',value='', inplace=True, regex=True)
+
+                    as_list=Xdf.index.tolist()
+                    b_list = [re.sub('.sched01', '', x ) for x in as_list]
+                    Xdf.index=b_list
+
+                    st.data_editor(Xdf, column_config={ 
+                        "_index" : "Job ID",
+                        "resources_used" : st.column_config.ListColumn("Resources used"),
+                        "Resource_List" : st.column_config.ListColumn("Resources req"),
+                        #"rating": st.column_config.NumberColumn(),
+                        "job_state": 'Job State',
+                        "Job_Name" : 'Job name', 
+                        "Job_Owner": 'Owner UID',
+                        "stime" : "Start", #st.column_config.DatetimeColumn("Start time", format='HH:mm:ss YYYY-MM-DD') ,
+                        "mtime" : "End", #st.column_config.DatetimeColumn("End time", format='HH:mm:ss YYYY-MM-DD') ,
+                        "comment": "Comment",
+                        "Exit_status": "Exit status",
+                        "project" : "Project",
+                        "Submit_arguments" : 'PBS script'
+                        },
+                        disabled=True)
+                    
+
                 else:
                      st.write('No jobs found') 
 

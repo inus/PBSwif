@@ -4,7 +4,7 @@ SSH_TIMEOUT=15
 try:
     import drmaa
     DRMAA_avail = True
-except ImportError:
+except ModuleNotFoundError:
     print('No DRMAA, not a submit host')
     DRMAA_avail = False
 

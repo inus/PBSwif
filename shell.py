@@ -14,7 +14,7 @@ SSH_TIMEOUT=15
 
 
 def run_cluster_cmd(creds, cmd_dict, cmd, args):
-     
+
     try:
         try:
             if DRMAA_avail:
@@ -45,7 +45,8 @@ def run_cluster_cmd(creds, cmd_dict, cmd, args):
 def show_shell(st, shell):
     
     def cmd_options(user, args):
-         
+         user = user.rstrip()
+#         import pdb; pdb.set_trace()
          cmd_dict = {
                 'w':  'w',
                 'df':  'df -h',

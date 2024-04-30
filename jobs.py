@@ -89,31 +89,12 @@ def show_jobs(st, status_tab):
                     st.error("Qstat jobs via drmaa failed: " + str(t))
                     return pd.DataFrame({'Jobs' : []})            
 
-#                dd = jobs.stdout.decode()
-#                dd = filter_qstat_json(dd)
                 df = filter_qstat_json(jobs)
-
-#                dd=re.sub('\"COMP_WORDBREAKS\".*+\n', '', dd)
-#                dd=re.sub('\"CONDA_PROMPT_MODIFIER\".*+\n', '', dd)
-#                dd=re.sub('\\\\','',dd)
-#                dd=re.sub('\"\$\@\"','',dd)
-#
-#                try:
-#                    df =  json.loads(dd)
-#                except Exception as e:
-#                    import pdb; pdb.set_trace()
-#                    print("Error in json.loads at ", e, '>>', '<<') # line )
-#                    print("dd[e.position]", '>>', dd[e.pos],  '<<') # line )
-#                    print("Chars: 10 before & after ", '>>', dd[e.pos-10:e.pos+15],  '<<') # line )
-                    #st.error('Can not read qstat json output: '  +  '>>' + dd[e.pos] + '<< ... '  +  dd[e.pos-8:e.pos+12] )
-#                    st.error('Can not read qstat json output: '  +  '>>' + str(e) + '<<')
-#                    return
 
                 if 'Jobs' in df.keys():
                         return pd.DataFrame(df)
                 else:
                     return pd.DataFrame({'Jobs' : []})            
-
 
 
         #if  get_user() == None: #"" and 
@@ -145,22 +126,7 @@ def show_jobs(st, status_tab):
             #if 'returncode' in qstat.keys(): 
             if type(qstat)==CompletedProcess:
                 if qstat.returncode == 0:
-                    #dd  = qstat.stdout.decode()
                     df = filter_qstat_json(qstat)
-
-#                    dd=re.sub('\"COMP_WORDBREAKS\".*+\n', '', dd)
-#                    dd=re.sub('\"CONDA_PROMPT_MODIFIER\".*+\n', '', dd)
-#                    dd=re.sub('\\\\','',dd)
-#                    dd=re.sub('\"\$\@\"','',dd)
-#                    dd=re.sub(':nan',':\"nan\"',dd)
-#
-#                    try:
-#                        df=json.loads(dd)
-#                    except Exception as e:
-#                        idx = int(str(e).split(' ')[-1].replace(')', ''))                   
-#                        print("Error in json.loads at ", e, dd[idx-20:idx+20])
-#                        import pdb; pdb.set_trace()
-#                        st.error("Error in json.loads at :"  + dd[idx] + ': ' )
                         
                     if ( 'df' in locals() or 'df' in globals() ):
                         if 'Jobs' in df.keys():

@@ -7,6 +7,8 @@ from subprocess import run, CalledProcessError, TimeoutExpired
 import inet
 from pbs import DRMAA_avail 
 import socket
+from ldap3 import Server, Connection, SAFE_SYNC, SUBTREE,ALL, ALL_ATTRIBUTES, ALL_OPERATIONAL_ATTRIBUTES
+
 
 SSH_TIMEOUT=15
 
@@ -39,6 +41,7 @@ def run_cluster_cmd(creds, cmd_dict, cmd, args):
     if output.stderr.decode():
         return output.stderr.decode()
 
+
 def show_shell(st, shell):
     
     def cmd_options(user, args):
@@ -64,6 +67,7 @@ def show_shell(st, shell):
                 "CHPC programmes":  "cat  /home/userdb/programme_info.csv | grep "   + args, #  st.session_state.target_user,
 #                "blocked":   "grep " + st.session_state.target_user + " /home/userdb/blockeduser",
                 "blocked":   "cat /home/userdb/blockeduser | grep " + args, #st.session_state.target_user,
+                "email":  "ldapsearch -h bright2  -p 389 -x -t uid=" + user  + " | grep mail", #st.session_state.target_user,
          }
          if st.session_state.admin:
             return  admin_dict
@@ -76,6 +80,7 @@ def show_shell(st, shell):
             if st.session_state.admin and st.session_state.target_user != "":
                  user = st.session_state.target_user
             else:
+                 st.info('Select Admin mode in side panel for admin commands')
                  user =  st.session_state.user
 
             cmd_dict = cmd_options(user, '')

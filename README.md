@@ -21,7 +21,7 @@
 
 - Install streamlit and optionally drmaa, to enable job submission.
 
-  `pip install streamlit`
+  `pip install -r requirements.txt`
 
 
   Note that the DRMAA v1 library has to be compiled or installed on the

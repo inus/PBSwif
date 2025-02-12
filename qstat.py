@@ -69,11 +69,8 @@ def show_queue(st, queue):
                          st.warning("No network connection")
 
                 else:
-                        if re.search ( '\s', st.session_state.user):
-                                st.error("username has spaces")
-
-                        if st.session_state.user != "" and not re.search ( '\s', st.session_state.user): 
-                            creds = st.session_state.user + '@' + st.session_state.server 
+                        if st.session_state.user != "": # and not re.search ( '\s', st.session_state.user): 
+                            creds = st.session_state.user.strip() + '@' + st.session_state.server 
                             if inet.up():
                                     qstat = get_qstat(creds, cmd)
                                     if qstat is None:

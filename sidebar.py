@@ -35,7 +35,7 @@ def show_sidebar(st):
                         else:
                              msg_off(warning_place)
                     else:
-                        user = st.text_input('SSH cluster username', key='user', value=str((sys.argv[1])))
+                        user = st.text_input('SSH cluster username', key='user', value=str((sys.argv[1]))).strip()
 
                     col1L, col1R = st.columns([1, 2])
                     with col1L: 
